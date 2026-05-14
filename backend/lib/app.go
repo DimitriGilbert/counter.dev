@@ -119,10 +119,16 @@ func NewApp() *App {
 	}
 
 	serveMux := http.NewServeMux()
+	serveMux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintln(w, "ok")
+	})
 	//fs := http.FileServer(http.Dir("./static"))
 	serveMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var prefix string
-		if r.Host == "localhost:8080" {
+		if config.StaticRoot != "" && hostAllowed(r.Host, config.AllowedHosts) {
+			prefix = config.StaticRoot
+		} else if r.Host == "localhost:8080" {
 			if strings.HasPrefix(r.URL.Path, "/blog/") ||
 				r.URL.Path == "/blog" ||
 				strings.HasPrefix(r.URL.Path, "/pages/") ||
@@ -158,6 +164,18 @@ func NewApp() *App {
 		DB:           db,
 	}
 	return app
+}
+
+func hostAllowed(host string, allowedHosts []string) bool {
+	if len(allowedHosts) == 0 {
+		return true
+	}
+	for _, allowedHost := range allowedHosts {
+		if host == allowedHost {
+			return true
+		}
+	}
+	return false
 }
 
 func (app App) Serve() {

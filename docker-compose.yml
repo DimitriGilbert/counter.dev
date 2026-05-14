@@ -1,0 +1,40 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    environment:
+      WEBSTATS_BIND: ":8080"
+      WEBSTATS_REDIS_URL: "redis://redis:6379"
+      WEBSTATS_COOKIE_SECRET: "${WEBSTATS_COOKIE_SECRET:?set WEBSTATS_COOKIE_SECRET in Dokploy}"
+      WEBSTATS_PASSWORD_SALT: "${WEBSTATS_PASSWORD_SALT:?set WEBSTATS_PASSWORD_SALT in Dokploy}"
+      WEBSTATS_ARCHIVE_DATABASE: "/data/archive.db"
+      WEBSTATS_ARCHIVE_MAX_AGE: "${WEBSTATS_ARCHIVE_MAX_AGE:-24h}"
+      WEBSTATS_STATIC_ROOT: "/app/static"
+      WEBSTATS_ALLOWED_HOSTS: "${WEBSTATS_ALLOWED_HOSTS:-}"
+      WEBSTATS_SMTP_SECRET: "${WEBSTATS_SMTP_SECRET:-dummy}"
+      WEBSTATS_MAILGUN_SECRET_API_KEY: "${WEBSTATS_MAILGUN_SECRET_API_KEY:-dummy}"
+    volumes:
+      - counter-data:/data
+    ports:
+      - "8080:8080"
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  counter-data:
+  redis-data:

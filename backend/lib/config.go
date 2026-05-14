@@ -3,6 +3,7 @@ package lib
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 )
 
@@ -15,6 +16,8 @@ type Config struct {
 	ArchiveMaxAge       time.Duration
 	MailgunSecretApiKey string
 	SMTPSecret          string
+	StaticRoot          string
+	AllowedHosts        []string
 }
 
 func env(env string) string {
@@ -41,6 +44,22 @@ func envDuration(envName string) time.Duration {
 	return duration
 }
 
+func envList(envName string) []string {
+	strVal := os.Getenv(envName)
+	if strVal == "" {
+		return nil
+	}
+	values := strings.Split(strVal, ",")
+	result := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value != "" {
+			result = append(result, value)
+		}
+	}
+	return result
+}
+
 func NewConfigFromEnv() Config {
 	return Config{
 		RedisUrl:            envDefault("WEBSTATS_REDIS_URL", "redis://localhost:6379"),
@@ -51,5 +70,7 @@ func NewConfigFromEnv() Config {
 		ArchiveMaxAge:       envDuration("WEBSTATS_ARCHIVE_MAX_AGE"),
 		MailgunSecretApiKey: envDefault("WEBSTATS_MAILGUN_SECRET_API_KEY", "dummy"),
 		SMTPSecret:          envDefault("WEBSTATS_SMTP_SECRET", "dummy"),
+		StaticRoot:          envDefault("WEBSTATS_STATIC_ROOT", ""),
+		AllowedHosts:        envList("WEBSTATS_ALLOWED_HOSTS"),
 	}
 }
