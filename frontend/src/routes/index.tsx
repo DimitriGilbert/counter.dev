@@ -190,7 +190,7 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
   const directVisits = countDirect(rangeData)
 
   const primaryPies = ['ref', 'page', 'country'] as const
-  const secondaryPies = ['device', 'platform', 'browser', 'lang', 'screen'] as const
+  const secondaryPies = ['lang', 'screen'] as const
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-5 py-6">
@@ -345,8 +345,22 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
           })}
         </div>
 
-        {/* 3. Secondary breakdowns — Devices, Platforms, Browsers, Languages, Screen */}
-        <div className="mb-5 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+        {/* 3. Page table — legacy-style ranked page counts */}
+        <div className="mb-5">
+          <PagesTable data={rangeData.page ?? {}} />
+        </div>
+
+        {/* 4. Audience breakdown — replaces device/platform/browser pie trio */}
+        <div className="mb-5">
+          <AudienceStackedBars
+            device={rangeData.device ?? {}}
+            platform={rangeData.platform ?? {}}
+            browser={rangeData.browser ?? {}}
+          />
+        </div>
+
+        {/* 5. Secondary breakdowns — Languages, Screen */}
+        <div className="mb-5 grid gap-3 md:grid-cols-2">
           {secondaryPies.map((dimension) => {
             const panel = piePanels.find(([d]) => d === dimension)
             return (
@@ -359,14 +373,14 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
           })}
         </div>
 
-        {/* 4. Temporal patterns — moved down, less prominent */}
+        {/* 6. Temporal patterns — moved down, less prominent */}
         <div className="mb-5 grid gap-3 lg:grid-cols-3">
           <DynamicsPanel dates={rangeData.date ?? {}} />
           <BarListPanel title="Hours" data={normalizeHours(rangeData.hour ?? {})} />
           <BarListPanel title="Weekdays" data={rangeData.weekday ?? {}} />
         </div>
 
-        {/* 5. Admin / bottom */}
+        {/* 7. Admin / bottom */}
         <div className="grid gap-3 lg:grid-cols-2">
           <TrackingCode uuid={dump.user.uuid} />
           <VisitLogs logs={siteDump.logs} />
@@ -575,6 +589,117 @@ function PiePanel({ title, data }: { title: string; data: Slice[] }) {
         </ChartContainer>
       </CardContent>
     </Card>
+  )
+}
+
+function PagesTable({ data }: { data: Record<string, number> }) {
+  const entries = Object.entries(data)
+    .filter(([, value]) => value > 0)
+    .sort((a, b) => b[1] - a[1])
+  const total = sum(entries.map(([, value]) => value))
+
+  return (
+    <Card className="border-border/40 shadow-none">
+      <CardHeader className="pb-1 px-4 pt-4">
+        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">Visited pages</CardDescription>
+        <CardTitle className="font-mono text-sm tabular-nums tracking-tight">
+          {formatNumber(total)} views
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="px-4 pb-4">
+        <div className="max-h-72 overflow-auto rounded-lg border border-border/30">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="px-3 py-2 text-[10px]">Page</TableHead>
+                <TableHead className="w-24 px-3 py-2 text-right text-[10px]">Views</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {entries.length ? entries.map(([page, value]) => (
+                <TableRow key={page}>
+                  <TableCell className="max-w-0 truncate px-3 py-2 font-mono text-[11px] text-muted-foreground" title={page}>
+                    {page}
+                  </TableCell>
+                  <TableCell className="px-3 py-2 text-right font-mono text-[11px] tabular-nums">
+                    {formatNumber(value)}
+                  </TableCell>
+                </TableRow>
+              )) : (
+                <TableRow>
+                  <TableCell colSpan={2} className="px-3 py-8 text-center text-xs text-muted-foreground">
+                    No page views yet
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function AudienceStackedBars({ device, platform, browser }: {
+  device: Record<string, number>
+  platform: Record<string, number>
+  browser: Record<string, number>
+}) {
+  return (
+    <Card className="border-border/40 shadow-none">
+      <CardHeader className="pb-2 px-4 pt-4">
+        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">Audience stack</CardDescription>
+        <CardTitle className="text-sm font-medium tracking-tight">Device, platform, browser</CardTitle>
+      </CardHeader>
+      <CardContent className="grid gap-4 px-4 pb-4 lg:grid-cols-3">
+        <StackedBarRow title="Devices" data={device} />
+        <StackedBarRow title="Platforms" data={platform} />
+        <StackedBarRow title="Browsers" data={browser} />
+      </CardContent>
+    </Card>
+  )
+}
+
+function StackedBarRow({ title, data }: { title: string; data: Record<string, number> }) {
+  const entries = Object.entries(data)
+    .filter(([, value]) => value > 0)
+    .sort((a, b) => b[1] - a[1])
+  const total = Math.max(1, sum(entries.map(([, value]) => value)))
+  const top = entries.slice(0, 5)
+  const other = sum(entries.slice(5).map(([, value]) => value))
+  const segments = other ? [...top, ['Other', other] as [string, number]] : top
+
+  return (
+    <div className="min-w-0">
+      <div className="mb-2 flex items-baseline justify-between gap-3">
+        <p className="text-xs font-medium tracking-tight">{title}</p>
+        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{formatNumber(total)}</span>
+      </div>
+      <div className="flex h-3 overflow-hidden rounded-full bg-muted">
+        {segments.length ? segments.map(([name, value], index) => (
+          <span
+            key={name}
+            className="h-full min-w-[2px]"
+            title={`${name}: ${formatNumber(value)}`}
+            style={{
+              width: `${(value / total) * 100}%`,
+              backgroundColor: colors[index % colors.length],
+            }}
+          />
+        )) : null}
+      </div>
+      <div className="mt-2 grid gap-1.5">
+        {segments.length ? segments.map(([name, value], index) => (
+          <div key={name} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 text-[11px]">
+            <span className="size-1.5 rounded-full" style={{ backgroundColor: colors[index % colors.length] }} />
+            <span className="truncate text-muted-foreground">{name}</span>
+            <span className="font-mono tabular-nums">{formatNumber(value)}</span>
+          </div>
+        )) : (
+          <p className="text-[11px] text-muted-foreground">No data yet</p>
+        )}
+      </div>
+    </div>
   )
 }
 
