@@ -179,28 +179,6 @@ const columns = [
 
 function Dashboard() {
   const dashboard = useCounterDump()
-  const scope = React.useRef<HTMLDivElement>(null)
-  const [sorting, setSorting] = React.useState<SortingState>([{ id: 'total', desc: true }])
-
-  useGSAP(
-    () => {
-      gsap.from('.dashboard-word', {
-        opacity: 0.15,
-        y: 18,
-        stagger: 0.04,
-        scrollTrigger: { trigger: '.dashboard-hero', start: 'top 70%', end: 'bottom 30%', scrub: true },
-      })
-      gsap.from('.analytics-card', {
-        opacity: 0,
-        y: 42,
-        scale: 0.97,
-        stagger: 0.06,
-        ease: 'power3.out',
-        scrollTrigger: { trigger: '.analytics-grid', start: 'top 82%' },
-      })
-    },
-    { scope }
-  )
 
   if (dashboard.status === 'connecting') {
     return <StateScreen title="Connecting to live Counter data" detail="Opening the /dump event stream and loading your active account, archives, and site preferences." tone="loading" />
@@ -214,10 +192,36 @@ function Dashboard() {
     return <StateScreen title="Dashboard stream disconnected" detail={dashboard.error ?? 'The live event stream failed.'} tone="error" action={<Button onClick={() => window.location.reload()}>Reconnect stream</Button>} />
   }
 
-  const readyDashboard = dashboard as ReadyDashboard
-  const { dump, selectedSite, selectedRange, setSelectedSite, setSelectedRange, lineData, lineConfig, tableRows } = readyDashboard
+  return <ReadyDashboardView dashboard={dashboard as ReadyDashboard} />
+}
+
+function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
+  const scope = React.useRef<HTMLDivElement>(null)
+  const [sorting, setSorting] = React.useState<SortingState>([{ id: 'total', desc: true }])
+  const { dump, selectedSite, selectedRange, setSelectedSite, setSelectedRange, lineData, lineConfig, tableRows } = dashboard
   const siteDump = dump.sites[selectedSite]
   const rangeData = siteDump?.visits[selectedRange] ?? emptyVisitData()
+
+  useGSAP(
+    () => {
+      if (!scope.current?.querySelector('.dashboard-hero')) return
+      gsap.from(scope.current.querySelectorAll('.dashboard-word'), {
+        opacity: 0.15,
+        y: 18,
+        stagger: 0.04,
+        scrollTrigger: { trigger: scope.current.querySelector('.dashboard-hero'), start: 'top 70%', end: 'bottom 30%', scrub: true },
+      })
+      gsap.from(scope.current.querySelectorAll('.analytics-card'), {
+        opacity: 0,
+        y: 42,
+        scale: 0.97,
+        stagger: 0.06,
+        ease: 'power3.out',
+        scrollTrigger: { trigger: scope.current.querySelector('.analytics-grid'), start: 'top 82%' },
+      })
+    },
+    { scope, dependencies: [dump, selectedSite, selectedRange] }
+  )
 
   const table = useReactTable({
     data: tableRows,
@@ -255,7 +259,7 @@ function Dashboard() {
               selectedRange={selectedRange}
               setSelectedSite={setSelectedSite}
               setSelectedRange={setSelectedRange}
-              onCustomRange={readyDashboard.loadCustomRange}
+              onCustomRange={dashboard.loadCustomRange}
             />
             <ShareActions dump={dump} />
           </div>
