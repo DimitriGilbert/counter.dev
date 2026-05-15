@@ -18,6 +18,7 @@ type Config struct {
 	SMTPSecret          string
 	StaticRoot          string
 	AllowedHosts        []string
+	FrontendRoot        string
 }
 
 func env(env string) string {
@@ -72,5 +73,6 @@ func NewConfigFromEnv() Config {
 		SMTPSecret:          envDefault("WEBSTATS_SMTP_SECRET", "dummy"),
 		StaticRoot:          envDefault("WEBSTATS_STATIC_ROOT", ""),
 		AllowedHosts:        envList("WEBSTATS_ALLOWED_HOSTS"),
+		FrontendRoot:        envDefault("WEBSTATS_FRONTEND_ROOT", ""),
 	}
 }

@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -119,10 +120,46 @@ func NewApp() *App {
 	}
 
 	serveMux := http.NewServeMux()
+	app := &App{
+		RedisPool:    redisPool,
+		SessionStore: sessionStore,
+		Logger:       logger,
+		ServeMux:     serveMux,
+		Config:       config,
+		DB:           db,
+	}
 	serveMux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, "ok")
 	})
+	serveMux.HandleFunc("/api/session", func(w http.ResponseWriter, r *http.Request) {
+		ctx := app.NewContext(w, r)
+		defer ctx.Cleanup()
+		userId := ctx.GetUserId()
+		resp := map[string]interface{}{
+			"authenticated": userId != "",
+			"user":          userId,
+			"site_links":    map[string]int{},
+		}
+		if userId != "" {
+			links, err := ctx.User(userId).GetPreferredSiteLinks()
+			if err != nil {
+				app.Logger.Printf("session site links error: %v", err)
+			} else {
+				resp["site_links"] = links
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	})
+	serveMux.HandleFunc("/app-next", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/app-next/", http.StatusTemporaryRedirect)
+	})
+	if config.FrontendRoot != "" {
+		serveMux.HandleFunc("/app-next/", func(w http.ResponseWriter, r *http.Request) {
+			serveSPAFile(w, r, config.FrontendRoot, "/app-next/")
+		})
+	}
 	//fs := http.FileServer(http.Dir("./static"))
 	serveMux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var prefix string
@@ -155,15 +192,21 @@ func NewApp() *App {
 		}
 		http.ServeFile(w, r, prefix+r.URL.Path)
 	})
-	app := &App{
-		RedisPool:    redisPool,
-		SessionStore: sessionStore,
-		Logger:       logger,
-		ServeMux:     serveMux,
-		Config:       config,
-		DB:           db,
-	}
 	return app
+}
+
+func serveSPAFile(w http.ResponseWriter, r *http.Request, root string, routePrefix string) {
+	relPath := strings.TrimPrefix(r.URL.Path, routePrefix)
+	relPath = filepath.Clean("/" + relPath)
+	if relPath == "/" {
+		relPath = "/index.html"
+	}
+	filePath := filepath.Join(root, relPath)
+	info, err := os.Stat(filePath)
+	if err != nil || info.IsDir() {
+		filePath = filepath.Join(root, "index.html")
+	}
+	http.ServeFile(w, r, filePath)
 }
 
 func hostAllowed(host string, allowedHosts []string) bool {

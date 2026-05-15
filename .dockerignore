@@ -9,11 +9,14 @@ __pycache__
 archive.db*
 counter.dev
 dist
+**/dist
 log
 node_modules
+**/node_modules
 out
 site
 tags
 tmp
 venv
 webstats
+frontend/.tanstack
