@@ -6,7 +6,8 @@ customElements.define(
                 console.log("Sanity input validation test failed");
                 return "error, contact support";
             }
-            return `<script src="https://cdn.counter.dev/script.js" data-id="${uuid}" data-utcoffset="${utcoffset}"></script>`;
+            var server = window.location.origin;
+            return `<script src="${server}/script.js" data-id="${uuid}" data-utcoffset="${utcoffset}" data-server="${server}"></script>`;
         }
 
         draw(uuid, utcoffset) {

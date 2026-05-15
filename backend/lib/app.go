@@ -132,6 +132,14 @@ func NewApp() *App {
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintln(w, "ok")
 	})
+	if config.TrackingScriptRoot != "" {
+		serveMux.HandleFunc("/script.js", func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, filepath.Join(config.TrackingScriptRoot, "script.js"))
+		})
+		serveMux.HandleFunc("/script-testing.js", func(w http.ResponseWriter, r *http.Request) {
+			http.ServeFile(w, r, filepath.Join(config.TrackingScriptRoot, "script-testing.js"))
+		})
+	}
 	serveMux.HandleFunc("/api/session", func(w http.ResponseWriter, r *http.Request) {
 		ctx := app.NewContext(w, r)
 		defer ctx.Cleanup()

@@ -19,6 +19,7 @@ type Config struct {
 	StaticRoot          string
 	AllowedHosts        []string
 	FrontendRoot        string
+	TrackingScriptRoot  string
 }
 
 func env(env string) string {
@@ -74,5 +75,6 @@ func NewConfigFromEnv() Config {
 		StaticRoot:          envDefault("WEBSTATS_STATIC_ROOT", ""),
 		AllowedHosts:        envList("WEBSTATS_ALLOWED_HOSTS"),
 		FrontendRoot:        envDefault("WEBSTATS_FRONTEND_ROOT", ""),
+		TrackingScriptRoot:  envDefault("WEBSTATS_TRACKING_SCRIPT_ROOT", ""),
 	}
 }

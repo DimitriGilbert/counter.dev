@@ -1,10 +1,12 @@
 package lib
 
 import (
+	"database/sql"
+	"time"
+
 	"github.com/gomodule/redigo/redis"
 	"github.com/ihucos/counter.dev/models"
 	"gorm.io/gorm/clause"
-	"time"
 )
 
 // Redis blocks too long if the chunk size is too big but sqlite seems to like
@@ -214,9 +216,14 @@ func (app *App) QueryArchive(queryArgs QueryArchiveArgs) (QueryArchiveResult, er
 }
 
 func (app *App) QueryArchiveOldestDate(userId string) (string, error) {
-	var date string
+	var date sql.NullString
 	query := app.DB.Model(&Record{}).Select(
 		"min(date)").Where("user = ?", userId)
-	query.Scan(&date)
-	return date, nil
+	if err := query.Scan(&date).Error; err != nil {
+		return "", err
+	}
+	if !date.Valid {
+		return "", nil
+	}
+	return date.String, nil
 }

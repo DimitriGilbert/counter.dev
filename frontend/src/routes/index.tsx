@@ -487,7 +487,8 @@ function ShareActions({ dump }: { dump: Dump }) {
 }
 
 function TrackingCode({ uuid }: { uuid: string }) {
-  const code = `<script src="https://counter.dev/script.js" data-id="${uuid}" data-utcoffset="${getUTCOffset()}"></script>`
+  const server = window.location.origin
+  const code = `<script src="${server}/script.js" data-id="${uuid}" data-utcoffset="${getUTCOffset()}" data-server="${server}"></script>`
   return <Card id="tracking-code"><CardHeader><CardDescription>Add website</CardDescription><CardTitle>Tracking code</CardTitle></CardHeader><CardContent><pre className="overflow-x-auto rounded-lg bg-muted p-4 text-xs"><code>{code}</code></pre></CardContent></Card>
 }
 
