@@ -21,22 +21,13 @@ export const piePanels = [
   ['page', 'Visited pages'],
 ] as const
 
-export const palette = {
-  amber: 'oklch(0.76 0.14 65)',
-  teal: 'oklch(0.68 0.12 175)',
-  rose: 'oklch(0.65 0.18 10)',
-  slate: 'oklch(0.58 0.08 260)',
-  emerald: 'oklch(0.65 0.15 163)',
-  violet: 'oklch(0.60 0.16 300)',
-} as const
-
 export const colors = [
-  palette.amber,
-  palette.teal,
-  palette.rose,
-  palette.slate,
-  palette.emerald,
-  palette.violet,
+  'oklch(0.76 0.14 65)',
+  'oklch(0.68 0.12 175)',
+  'oklch(0.65 0.18 10)',
+  'oklch(0.58 0.08 260)',
+  'oklch(0.72 0.12 290)',
+  'oklch(0.60 0.16 300)',
 ]
 
 export const searchEngines = new Set([

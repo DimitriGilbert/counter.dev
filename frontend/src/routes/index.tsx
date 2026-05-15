@@ -58,8 +58,15 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
-import type { RangeKey, ReadyDashboard, SiteRow, Slice, VisitsData, Dump } from '@/lib/types'
+import type { RangeKey, ReadyDashboard, SiteRow, Slice, Dump } from '@/lib/types'
 import { ranges, piePanels, searchEngines, socialSites, colors } from '@/lib/constants'
 import {
   formatNumber,
@@ -101,7 +108,7 @@ const columns = [
   columnHelper.accessor('site', {
     header: 'Site',
     cell: ({ row }) => (
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2">
         <span className="size-2 rounded-full" style={{ backgroundColor: row.original.color }} />
         <span className="font-medium text-sm">{row.original.site}</span>
       </div>
@@ -177,110 +184,29 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
     return <SetupScreen uuid={dump.user.uuid} />
   }
 
-  const totalVisits = countTotal(rangeData)
-  const sortedSites = Object.keys(dump.sites).sort(
-    (a, b) => dump.sites[b].count - dump.sites[a].count,
-  )
-
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-5 py-6">
-      <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-        {/* Sidebar: site list */}
-        <aside className="flex flex-col gap-1 lg:sticky lg:top-[57px] lg:h-[calc(100dvh-57px)] lg:overflow-y-auto lg:pb-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Sites
-            </h2>
-            <ShareActions dump={dump} compact />
-          </div>
+    <div className="w-full px-4 py-5 sm:px-6">
+      {/* Top bar: range + actions */}
+      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <RangeBar
+          selectedRange={selectedRange}
+          setSelectedRange={setSelectedRange}
+          loadCustomRange={loadCustomRange}
+        />
+        <ShareActions dump={dump} />
+      </div>
 
-          <nav className="flex flex-col gap-0.5">
-            {sortedSites.map((site) => {
-              const isActive = site === effectiveSite
-              const siteCount = dump.sites[site].count
-              return (
-                <button
-                  key={site}
-                  onClick={() => setSelectedSite(site)}
-                  className={`group flex items-center gap-2.5 rounded-lg px-3 py-2.5 text-left text-sm transition-all duration-150 ${
-                    isActive
-                      ? 'bg-primary text-primary-foreground'
-                      : 'text-foreground hover:bg-secondary'
-                  }`}
-                >
-                  <span
-                    className={`size-2 shrink-0 rounded-full ${
-                      isActive ? 'bg-primary-foreground/60' : ''
-                    }`}
-                    style={!isActive ? { backgroundColor: colors[sortedSites.indexOf(site) % colors.length] } : undefined}
-                  />
-                  <span className="flex-1 truncate font-medium">{site}</span>
-                  <span
-                    className={`font-mono text-xs tabular-nums ${
-                      isActive ? 'text-primary-foreground/70' : 'text-muted-foreground'
-                    }`}
-                  >
-                    {formatNumber(siteCount)}
-                  </span>
-                </button>
-              )
-            })}
-          </nav>
+      {/* ====== SECTION 1: ALL SITES OVERVIEW ====== */}
+      <section className="mb-8">
+        <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          All sites overview
+        </h2>
 
-          <div className="mt-4 border-t border-border/40 pt-4">
-            <SiteTable table={table} selectedSite={effectiveSite} onSelectSite={setSelectedSite} />
-          </div>
-        </aside>
-
-        {/* Main content */}
-        <div className="flex min-w-0 flex-col gap-6">
-          {/* Range selector bar */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">{effectiveSite}</h1>
-              <p className="text-sm text-muted-foreground">
-                {selectedRangeLabel(selectedRange)} &middot; {formatNumber(totalVisits)} visits
-              </p>
-            </div>
-            <RangeBar
-              selectedRange={selectedRange}
-              setSelectedRange={setSelectedRange}
-              loadCustomRange={loadCustomRange}
-            />
-          </div>
-
-          {/* KPI row */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <MetricCard
-              label="Visits"
-              value={countTotal(rangeData)}
-              comparison={counterTrend(siteVisits, selectedRange, countTotal)}
-            />
-            <MetricCard
-              label="Search"
-              value={countMatchingRefs(rangeData, searchEngines)}
-              comparison={counterTrend(siteVisits, selectedRange, (v) => countMatchingRefs(v, searchEngines))}
-            />
-            <MetricCard
-              label="Social"
-              value={countMatchingRefs(rangeData, socialSites)}
-              comparison={counterTrend(siteVisits, selectedRange, (v) => countMatchingRefs(v, socialSites))}
-            />
-            <MetricCard
-              label="Direct"
-              value={countDirect(rangeData)}
-              comparison={counterTrend(siteVisits, selectedRange, countDirect)}
-            />
-          </div>
-
-          {/* Line chart */}
+        <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
           <Card className="border-border/40 shadow-none">
             <CardHeader className="pb-2">
-              <CardDescription className="text-xs uppercase tracking-widest">
-                Visit trends
-              </CardDescription>
               <CardTitle className="text-base font-medium">
-                All sites &middot; {selectedRangeLabel(selectedRange)}
+                Visit trends &middot; {selectedRangeLabel(selectedRange)}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -318,74 +244,130 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
             </CardContent>
           </Card>
 
-          {/* Secondary panels */}
-          <div className="grid gap-3 lg:grid-cols-3">
-            <DynamicsPanel dates={rangeData.date ?? {}} />
-            <BarListPanel title="Hours" data={normalizeHours(rangeData.hour ?? {})} />
-            <BarListPanel title="Weekdays" data={rangeData.weekday ?? {}} />
-          </div>
+          <Card className="border-border/40 shadow-none">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base font-medium">
+                Site comparison
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <SiteTable table={table} selectedSite={effectiveSite} onSelectSite={setSelectedSite} />
+            </CardContent>
+          </Card>
+        </div>
+      </section>
 
-          {/* Pie charts */}
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {piePanels.map(([dimension, title]) => (
-              <PiePanel
-                key={`${effectiveSite}-${selectedRange}-${dimension}`}
-                title={title}
-                data={toSlices(rangeData[dimension])}
-              />
-            ))}
+      {/* ====== SECTION 2: SELECTED SITE DETAIL ====== */}
+      <section>
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-3">
+            <Select value={effectiveSite} onValueChange={setSelectedSite}>
+              <SelectTrigger className="w-[220px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {siteNames
+                  .sort((a, b) => dump.sites[b].count - dump.sites[a].count)
+                  .map((site, index) => (
+                    <SelectItem key={site} value={site}>
+                      <div className="flex items-center gap-2">
+                        <span className="size-2 rounded-full" style={{ backgroundColor: colors[index % colors.length] }} />
+                        <span>{site}</span>
+                        <span className="ml-auto font-mono text-xs text-muted-foreground">
+                          {formatNumber(dump.sites[site].count)}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+              </SelectContent>
+            </Select>
+            <span className="text-sm text-muted-foreground">
+              {formatNumber(countTotal(rangeData))} visits
+            </span>
           </div>
-
-          {/* Bottom actions */}
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between border-t border-border/40 pt-4">
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="text-muted-foreground"
-                onClick={() => downloadCSV(effectiveSite, selectedRange, rangeData)}
-              >
-                <Download size={14} />
-                <span className="ml-1.5">CSV</span>
-              </Button>
-              {!dump.meta.sessionless ? <DeleteSite site={effectiveSite} /> : null}
-            </div>
-            <ShareActions dump={dump} />
-          </div>
-
-          {/* Bottom cards */}
-          <div className="grid gap-3 lg:grid-cols-2">
-            <TrackingCode uuid={dump.user.uuid} />
-            <VisitLogs logs={siteDump.logs} />
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-muted-foreground"
+              onClick={() => downloadCSV(effectiveSite, selectedRange, rangeData)}
+            >
+              <Download size={14} />
+              <span className="ml-1.5">CSV</span>
+            </Button>
+            {!dump.meta.sessionless ? <DeleteSite site={effectiveSite} /> : null}
           </div>
         </div>
-      </div>
+
+        {/* KPI row */}
+        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            label="Visits"
+            value={countTotal(rangeData)}
+            comparison={counterTrend(siteVisits, selectedRange, countTotal)}
+          />
+          <MetricCard
+            label="Search"
+            value={countMatchingRefs(rangeData, searchEngines)}
+            comparison={counterTrend(siteVisits, selectedRange, (v) => countMatchingRefs(v, searchEngines))}
+          />
+          <MetricCard
+            label="Social"
+            value={countMatchingRefs(rangeData, socialSites)}
+            comparison={counterTrend(siteVisits, selectedRange, (v) => countMatchingRefs(v, socialSites))}
+          />
+          <MetricCard
+            label="Direct"
+            value={countDirect(rangeData)}
+            comparison={counterTrend(siteVisits, selectedRange, countDirect)}
+          />
+        </div>
+
+        {/* Secondary panels */}
+        <div className="mb-4 grid gap-3 lg:grid-cols-3">
+          <DynamicsPanel dates={rangeData.date ?? {}} />
+          <BarListPanel title="Hours" data={normalizeHours(rangeData.hour ?? {})} />
+          <BarListPanel title="Weekdays" data={rangeData.weekday ?? {}} />
+        </div>
+
+        {/* Pie charts */}
+        <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          {piePanels.map(([dimension, title]) => (
+            <PiePanel
+              key={`${effectiveSite}-${selectedRange}-${dimension}`}
+              title={title}
+              data={toSlices(rangeData[dimension])}
+            />
+          ))}
+        </div>
+
+        {/* Bottom cards */}
+        <div className="grid gap-3 lg:grid-cols-2">
+          <TrackingCode uuid={dump.user.uuid} />
+          <VisitLogs logs={siteDump.logs} />
+        </div>
+      </section>
     </div>
   )
 }
 
 function DashboardSkeleton() {
   return (
-    <div className="mx-auto w-full max-w-[1440px] px-5 py-6">
-      <div className="grid gap-6 lg:grid-cols-[260px_1fr]">
-        <aside className="flex flex-col gap-2">
-          <div className="skeleton h-4 w-12" />
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="skeleton h-10 w-full" style={{ animationDelay: `${i * 80}ms` }} />
-          ))}
-        </aside>
-        <div className="flex flex-col gap-4">
-          <div className="flex gap-3">
-            <div className="skeleton h-8 w-32" />
-            <div className="skeleton h-8 w-64" />
-          </div>
-          <div className="grid gap-3 sm:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="skeleton h-24" style={{ animationDelay: `${i * 60}ms` }} />
-            ))}
-          </div>
-          <div className="skeleton h-[320px] w-full" />
+    <div className="w-full px-4 py-5 sm:px-6">
+      <div className="mb-5 flex gap-3">
+        <div className="skeleton h-8 w-64" />
+      </div>
+      <div className="mb-8">
+        <div className="skeleton mb-3 h-4 w-32" />
+        <div className="grid gap-4 xl:grid-cols-2">
+          <div className="skeleton h-[380px]" />
+          <div className="skeleton h-[380px]" />
         </div>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="skeleton h-24" style={{ animationDelay: `${i * 60}ms` }} />
+        ))}
       </div>
     </div>
   )
@@ -622,7 +604,7 @@ function BarListPanel({ title, data }: { title: string; data: Record<string, num
   )
 }
 
-function ShareActions({ dump, compact }: { dump: Dump; compact?: boolean }) {
+function ShareActions({ dump }: { dump: Dump }) {
   const [error, setError] = React.useState('')
   const baseUrl = `${window.location.origin}/app-next/`
   const shareLink = `${baseUrl}?user=${encodeURIComponent(dump.user.id)}&token=${encodeURIComponent(dump.user.token)}`
@@ -631,21 +613,13 @@ function ShareActions({ dump, compact }: { dump: Dump; compact?: boolean }) {
     return (
       <Badge variant="secondary" className="text-xs font-normal">
         <Eye size={12} className="mr-1" />
-        {compact ? dump.user.id : `Viewing ${dump.user.id} as guest`}
+        Viewing {dump.user.id} as guest
       </Badge>
     )
   }
 
-  if (compact) {
-    return (
-      <Button asChild size="sm" variant="outline" className="h-7 text-xs">
-        <a href="#tracking-code"><Plus size={12} className="mr-1" />Add</a>
-      </Button>
-    )
-  }
-
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {dump.user.token ? (
         <Button
           variant="outline"
@@ -679,6 +653,9 @@ function ShareActions({ dump, compact }: { dump: Dump; compact?: boolean }) {
           Remove guest
         </Button>
       )}
+      <Button asChild size="sm" variant="outline" className="text-muted-foreground">
+        <a href="#tracking-code"><Plus size={14} className="mr-1.5" />Add site</a>
+      </Button>
       {error && (
         <Alert variant="destructive" className="basis-full">
           <AlertTitle>Action failed</AlertTitle>
