@@ -920,13 +920,31 @@ function ShareActions({ dump }: { dump: Dump }) {
 }
 
 function TrackingCode({ uuid }: { uuid: string }) {
+  const [status, setStatus] = React.useState<'idle' | 'copied' | 'error'>('idle')
   const server = window.location.origin
   const code = `<script src="${server}/script.js" data-id="${uuid}" data-utcoffset="${getUTCOffset()}" data-server="${server}"></script>`
   return (
     <Card id="tracking-code" className="border-border/40 shadow-none">
-      <CardHeader className="pb-1 px-4 pt-4">
-        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">Add website</CardDescription>
-        <CardTitle className="text-sm font-medium tracking-tight">Tracking code</CardTitle>
+      <CardHeader className="flex flex-row items-start justify-between gap-3 pb-1 px-4 pt-4">
+        <div>
+          <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">Add website</CardDescription>
+          <CardTitle className="text-sm font-medium tracking-tight">Tracking code</CardTitle>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 text-[11px] text-muted-foreground"
+          onClick={() => {
+            copyText(code)
+              .then(() => {
+                setStatus('copied')
+                window.setTimeout(() => setStatus('idle'), 1500)
+              })
+              .catch(() => setStatus('error'))
+          }}
+        >
+          {status === 'copied' ? 'Copied' : status === 'error' ? 'Copy failed' : 'Copy'}
+        </Button>
       </CardHeader>
       <CardContent className="px-4 pb-4">
         <pre className="overflow-x-auto rounded-lg bg-zinc-950 p-3.5 text-[11px] leading-relaxed text-zinc-400">
