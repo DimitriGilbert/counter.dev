@@ -179,8 +179,9 @@ Let's hope this madness stops eventually and things become more normal.
                      <div class="has-user dropdown" style="display: none">
                        <div class="profile-user fill-username"></div>
                        <div class="dropdown-content">
-                         <a href="/dashboard">Dashboard</a>
-                         <a href="#modal-account" rel="modal:open">Edit account</a>
+                          <a href="/dashboard">Dashboard</a>
+                          <a href="/app-next/">New app</a>
+                          <a href="#modal-account" rel="modal:open">Edit account</a>
                          <a href="/logout">Sign out</a>
                        </div>
                      </div>
@@ -220,9 +221,12 @@ Let's hope this madness stops eventually and things become more normal.
                            </div>
                            <!-- /// -->
                            <a href="/blog" class="mb24">Blog</a>
-                           <a href="/dashboard" class="has-user mb24" target="_blank" rel="nofollow" style="display: none">
-                             Dashboard
-                           </a>
+                            <a href="/dashboard" class="has-user mb24" target="_blank" rel="nofollow" style="display: none">
+                              Dashboard
+                            </a>
+                            <a href="/app-next/" class="has-user mb24" target="_blank" rel="nofollow" style="display: none">
+                              New app
+                            </a>
                            <a href="mailto:hey@counter.dev" class="mb24" target="_blank" rel="nofollow"
                              >Feedback</a
                            >

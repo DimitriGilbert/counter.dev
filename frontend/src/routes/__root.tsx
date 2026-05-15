@@ -24,12 +24,12 @@ function RootComponent() {
           </Link>
           <nav className="flex items-center gap-1">
             <ThemeToggle />
-            <Link
-              to="https://counter.dev/app#demo"
+            <a
+              href="/dashboard"
               className="ml-1 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
               Legacy app
-            </Link>
+            </a>
           </nav>
         </div>
       </header>
