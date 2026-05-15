@@ -189,7 +189,7 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
   const socialVisits = countMatchingRefs(rangeData, socialSites)
   const directVisits = countDirect(rangeData)
 
-  const primaryPies = ['ref', 'page', 'country'] as const
+  const primaryPies = ['ref', 'country'] as const
   const secondaryPies = ['lang', 'screen'] as const
 
   return (
@@ -331,8 +331,8 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
           />
         </div>
 
-        {/* 2. Primary breakdowns — Sources, Pages, Countries */}
-        <div className="mb-5 grid gap-3 md:grid-cols-3">
+        {/* 2. Primary breakdowns — Sources, Countries, and Pages pie/table pair */}
+        <div className="mb-5 grid gap-3 xl:grid-cols-[1fr_1fr_2fr]">
           {primaryPies.map((dimension) => {
             const panel = piePanels.find(([d]) => d === dimension)
             return (
@@ -343,14 +343,17 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
               />
             )
           })}
+          <div className="grid gap-3 md:grid-cols-2">
+            <PiePanel
+              key={`${effectiveSite}-${selectedRange}-page`}
+              title="Visited pages"
+              data={toSlices(rangeData.page)}
+            />
+            <PagesTable data={rangeData.page ?? {}} />
+          </div>
         </div>
 
-        {/* 3. Page table — legacy-style ranked page counts */}
-        <div className="mb-5">
-          <PagesTable data={rangeData.page ?? {}} />
-        </div>
-
-        {/* 4. Audience breakdown — replaces device/platform/browser pie trio */}
+        {/* 3. Audience breakdown — replaces device/platform/browser pie trio */}
         <div className="mb-5">
           <AudienceStackedBars
             device={rangeData.device ?? {}}
@@ -359,7 +362,7 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
           />
         </div>
 
-        {/* 5. Secondary breakdowns — Languages, Screen */}
+        {/* 4. Secondary breakdowns — Languages, Screen */}
         <div className="mb-5 grid gap-3 md:grid-cols-2">
           {secondaryPies.map((dimension) => {
             const panel = piePanels.find(([d]) => d === dimension)
@@ -373,14 +376,14 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
           })}
         </div>
 
-        {/* 6. Temporal patterns — moved down, less prominent */}
+        {/* 5. Temporal patterns — moved down, less prominent */}
         <div className="mb-5 grid gap-3 lg:grid-cols-3">
           <DynamicsPanel dates={rangeData.date ?? {}} />
           <BarListPanel title="Hours" data={normalizeHours(rangeData.hour ?? {})} />
           <BarListPanel title="Weekdays" data={rangeData.weekday ?? {}} />
         </div>
 
-        {/* 7. Admin / bottom */}
+        {/* 6. Admin / bottom */}
         <div className="grid gap-3 lg:grid-cols-2">
           <TrackingCode uuid={dump.user.uuid} />
           <VisitLogs logs={siteDump.logs} />
@@ -645,62 +648,141 @@ function AudienceStackedBars({ device, platform, browser }: {
   platform: Record<string, number>
   browser: Record<string, number>
 }) {
+  const groups = [
+    { id: 'device', title: 'Devices', data: device },
+    { id: 'platform', title: 'Platforms', data: platform },
+    { id: 'browser', title: 'Browsers', data: browser },
+  ] as const
+
   return (
     <Card className="border-border/40 shadow-none">
       <CardHeader className="pb-2 px-4 pt-4">
-        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">Audience stack</CardDescription>
+        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">Audience</CardDescription>
         <CardTitle className="text-sm font-medium tracking-tight">Device, platform, browser</CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-4 px-4 pb-4 lg:grid-cols-3">
-        <StackedBarRow title="Devices" data={device} />
-        <StackedBarRow title="Platforms" data={platform} />
-        <StackedBarRow title="Browsers" data={browser} />
+      <CardContent className="grid gap-5 px-4 pb-4 lg:grid-cols-2">
+        <AudienceCompositionChart groups={groups} />
+        <Tabs defaultValue="device" className="min-w-0">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="device">Devices</TabsTrigger>
+            <TabsTrigger value="platform">Platforms</TabsTrigger>
+            <TabsTrigger value="browser">Browsers</TabsTrigger>
+          </TabsList>
+          {groups.map((group) => (
+            <TabsContent key={group.id} value={group.id} className="mt-3">
+              <BreakdownTable title={group.title} data={group.data} />
+            </TabsContent>
+          ))}
+        </Tabs>
       </CardContent>
     </Card>
   )
 }
 
-function StackedBarRow({ title, data }: { title: string; data: Record<string, number> }) {
-  const entries = Object.entries(data)
-    .filter(([, value]) => value > 0)
-    .sort((a, b) => b[1] - a[1])
-  const total = Math.max(1, sum(entries.map(([, value]) => value)))
-  const top = entries.slice(0, 5)
-  const other = sum(entries.slice(5).map(([, value]) => value))
-  const segments = other ? [...top, ['Other', other] as [string, number]] : top
+function AudienceCompositionChart({ groups }: {
+  groups: ReadonlyArray<{ id: string; title: string; data: Record<string, number> }>
+}) {
+  return (
+    <div className="rounded-xl border border-border/30 bg-secondary/20 p-4">
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <p className="text-xs font-medium tracking-tight">Composition chart</p>
+        <span className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground">top 5 + other</span>
+      </div>
+      <div className="grid gap-5">
+        {groups.map((group) => (
+          <AudienceChartRow key={group.id} title={group.title} data={group.data} />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function AudienceChartRow({ title, data }: { title: string; data: Record<string, number> }) {
+  const segments = breakdownSegments(data)
+  const total = Math.max(1, sum(segments.map(([, value]) => value)))
 
   return (
-    <div className="min-w-0">
-      <div className="mb-2 flex items-baseline justify-between gap-3">
-        <p className="text-xs font-medium tracking-tight">{title}</p>
-        <span className="font-mono text-[11px] tabular-nums text-muted-foreground">{formatNumber(total)}</span>
+    <div className="grid gap-2">
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="text-[11px] font-medium text-muted-foreground">{title}</span>
+        <span className="font-mono text-[11px] tabular-nums">{formatNumber(total)}</span>
       </div>
-      <div className="flex h-3 overflow-hidden rounded-full bg-muted">
+      <div className="flex h-7 overflow-hidden rounded-lg bg-muted shadow-[inset_0_0_0_1px_var(--border)]">
         {segments.length ? segments.map(([name, value], index) => (
           <span
             key={name}
-            className="h-full min-w-[2px]"
-            title={`${name}: ${formatNumber(value)}`}
+            className="flex min-w-[3px] items-center justify-center overflow-hidden text-[9px] font-medium text-zinc-950/70"
+            title={`${title} / ${name}: ${formatNumber(value)}`}
             style={{
               width: `${(value / total) * 100}%`,
               backgroundColor: colors[index % colors.length],
             }}
-          />
+          >
+            {(value / total) > 0.16 ? Math.round((value / total) * 100) + '%' : ''}
+          </span>
         )) : null}
       </div>
-      <div className="mt-2 grid gap-1.5">
-        {segments.length ? segments.map(([name, value], index) => (
-          <div key={name} className="grid grid-cols-[auto_1fr_auto] items-center gap-2 text-[11px]">
+      <div className="flex flex-wrap gap-x-3 gap-y-1">
+        {segments.map(([name], index) => (
+          <span key={name} className="inline-flex items-center gap-1.5 text-[10px] text-muted-foreground">
             <span className="size-1.5 rounded-full" style={{ backgroundColor: colors[index % colors.length] }} />
-            <span className="truncate text-muted-foreground">{name}</span>
-            <span className="font-mono tabular-nums">{formatNumber(value)}</span>
-          </div>
-        )) : (
-          <p className="text-[11px] text-muted-foreground">No data yet</p>
-        )}
+            {name}
+          </span>
+        ))}
       </div>
     </div>
   )
+}
+
+function BreakdownTable({ title, data }: { title: string; data: Record<string, number> }) {
+  const entries = Object.entries(data)
+    .filter(([, value]) => value > 0)
+    .sort((a, b) => b[1] - a[1])
+  const total = Math.max(1, sum(entries.map(([, value]) => value)))
+
+  return (
+    <div className="max-h-64 overflow-auto rounded-lg border border-border/30">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead className="px-3 py-2 text-[10px]">{title}</TableHead>
+            <TableHead className="w-20 px-3 py-2 text-right text-[10px]">Count</TableHead>
+            <TableHead className="w-20 px-3 py-2 text-right text-[10px]">Share</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {entries.length ? entries.map(([name, value]) => (
+            <TableRow key={name}>
+              <TableCell className="max-w-0 truncate px-3 py-2 text-[11px] text-muted-foreground" title={name}>
+                {name}
+              </TableCell>
+              <TableCell className="px-3 py-2 text-right font-mono text-[11px] tabular-nums">
+                {formatNumber(value)}
+              </TableCell>
+              <TableCell className="px-3 py-2 text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+                {Math.round((value / total) * 100)}%
+              </TableCell>
+            </TableRow>
+          )) : (
+            <TableRow>
+              <TableCell colSpan={3} className="px-3 py-8 text-center text-xs text-muted-foreground">
+                No {title.toLowerCase()} data yet
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  )
+}
+
+function breakdownSegments(data: Record<string, number>) {
+  const entries = Object.entries(data)
+    .filter(([, value]) => value > 0)
+    .sort((a, b) => b[1] - a[1])
+  const top = entries.slice(0, 5)
+  const other = sum(entries.slice(5).map(([, value]) => value))
+  return other ? [...top, ['Other', other] as [string, number]] : top
 }
 
 function DynamicsPanel({ dates }: { dates: Record<string, number> }) {
