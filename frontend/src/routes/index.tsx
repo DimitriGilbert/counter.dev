@@ -109,26 +109,26 @@ const columns = [
     header: 'Site',
     cell: ({ row }) => (
       <div className="flex items-center gap-2">
-        <span className="size-2 rounded-full" style={{ backgroundColor: row.original.color }} />
-        <span className="font-medium text-sm">{row.original.site}</span>
+        <span className="size-1.5 rounded-full" style={{ backgroundColor: row.original.color }} />
+        <span className="font-medium text-xs">{row.original.site}</span>
       </div>
     ),
   }),
   columnHelper.accessor('total', {
     header: 'Total',
-    cell: (info) => <span className="font-mono text-sm tabular-nums">{formatNumber(info.getValue())}</span>,
+    cell: (info) => <span className="font-mono text-xs tabular-nums">{formatNumber(info.getValue())}</span>,
   }),
   columnHelper.accessor('search', {
     header: 'Search',
-    cell: (info) => <span className="font-mono text-sm tabular-nums">{formatNumber(info.getValue())}</span>,
+    cell: (info) => <span className="font-mono text-xs tabular-nums">{formatNumber(info.getValue())}</span>,
   }),
   columnHelper.accessor('social', {
     header: 'Social',
-    cell: (info) => <span className="font-mono text-sm tabular-nums">{formatNumber(info.getValue())}</span>,
+    cell: (info) => <span className="font-mono text-xs tabular-nums">{formatNumber(info.getValue())}</span>,
   }),
   columnHelper.accessor('direct', {
     header: 'Direct',
-    cell: (info) => <span className="font-mono text-sm tabular-nums">{formatNumber(info.getValue())}</span>,
+    cell: (info) => <span className="font-mono text-xs tabular-nums">{formatNumber(info.getValue())}</span>,
   }),
 ]
 
@@ -184,10 +184,18 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
     return <SetupScreen uuid={dump.user.uuid} />
   }
 
+  const totalVisits = countTotal(rangeData)
+  const searchVisits = countMatchingRefs(rangeData, searchEngines)
+  const socialVisits = countMatchingRefs(rangeData, socialSites)
+  const directVisits = countDirect(rangeData)
+
+  const primaryPies = ['ref', 'page', 'country'] as const
+  const secondaryPies = ['device', 'platform', 'browser', 'lang', 'screen'] as const
+
   return (
-    <div className="w-full px-4 py-5 sm:px-6">
-      {/* Top bar: range + actions */}
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mx-auto w-full max-w-[1400px] px-5 py-6">
+      {/* Controls */}
+      <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <RangeBar
           selectedRange={selectedRange}
           setSelectedRange={setSelectedRange}
@@ -196,23 +204,19 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
         <ShareActions dump={dump} />
       </div>
 
-      {/* ====== SECTION 1: ALL SITES OVERVIEW ====== */}
+      {/* ====== OVERVIEW: 2/3 chart | 1/3 table ====== */}
       <section className="mb-8">
-        <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          All sites overview
-        </h2>
-
-        <div className="grid gap-4 xl:grid-cols-[1fr_1fr]">
+        <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
           <Card className="border-border/40 shadow-none">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-medium">
+              <CardTitle className="text-sm font-medium tracking-tight">
                 Visit trends &middot; {selectedRangeLabel(selectedRange)}
               </CardTitle>
             </CardHeader>
             <CardContent>
               <ChartContainer config={lineConfig} className="h-[320px] w-full">
                 <LineChart accessibilityLayer data={lineData} margin={{ left: 0, right: 12 }}>
-                  <CartesianGrid vertical={false} stroke="oklch(0.92 0.004 260)" />
+                  <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.5} />
                   <XAxis
                     dataKey="bucket"
                     tickLine={false}
@@ -234,9 +238,9 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
                       type="monotone"
                       dataKey={siteKey(site)}
                       stroke={`var(--color-${siteKey(site)})`}
-                      strokeWidth={2}
+                      strokeWidth={1.5}
                       dot={false}
-                      activeDot={{ r: 4, strokeWidth: 0 }}
+                      activeDot={{ r: 3, strokeWidth: 0 }}
                     />
                   ))}
                 </LineChart>
@@ -246,9 +250,7 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
 
           <Card className="border-border/40 shadow-none">
             <CardHeader className="pb-2">
-              <CardTitle className="text-base font-medium">
-                Site comparison
-              </CardTitle>
+              <CardTitle className="text-sm font-medium tracking-tight">Site comparison</CardTitle>
             </CardHeader>
             <CardContent>
               <SiteTable table={table} selectedSite={effectiveSite} onSelectSite={setSelectedSite} />
@@ -257,9 +259,10 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
         </div>
       </section>
 
-      {/* ====== SECTION 2: SELECTED SITE DETAIL ====== */}
+      {/* ====== SITE DETAIL ====== */}
       <section>
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        {/* Site selector bar */}
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Select value={effectiveSite} onValueChange={setSelectedSite}>
               <SelectTrigger className="w-[220px]">
@@ -271,9 +274,9 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
                   .map((site, index) => (
                     <SelectItem key={site} value={site}>
                       <div className="flex items-center gap-2">
-                        <span className="size-2 rounded-full" style={{ backgroundColor: colors[index % colors.length] }} />
+                        <span className="size-1.5 rounded-full" style={{ backgroundColor: colors[index % colors.length] }} />
                         <span>{site}</span>
-                        <span className="ml-auto font-mono text-xs text-muted-foreground">
+                        <span className="ml-auto font-mono text-[10px] text-muted-foreground">
                           {formatNumber(dump.sites[site].count)}
                         </span>
                       </div>
@@ -281,67 +284,84 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
                   ))}
               </SelectContent>
             </Select>
-            <span className="text-sm text-muted-foreground">
-              {formatNumber(countTotal(rangeData))} visits
+            <span className="font-mono text-sm tabular-nums text-muted-foreground">
+              {formatNumber(totalVisits)} <span className="font-sans text-xs">visits</span>
             </span>
           </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              className="text-muted-foreground"
+              className="h-7 text-xs text-muted-foreground"
               onClick={() => downloadCSV(effectiveSite, selectedRange, rangeData)}
             >
-              <Download size={14} />
-              <span className="ml-1.5">CSV</span>
+              <Download size={12} />
+              <span className="ml-1">CSV</span>
             </Button>
             {!dump.meta.sessionless ? <DeleteSite site={effectiveSite} /> : null}
           </div>
         </div>
 
-        {/* KPI row */}
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {/* 1. KPI row — headline numbers */}
+        <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <MetricCard
             label="Visits"
-            value={countTotal(rangeData)}
+            value={totalVisits}
             comparison={counterTrend(siteVisits, selectedRange, countTotal)}
           />
           <MetricCard
+            label="Direct"
+            value={directVisits}
+            comparison={counterTrend(siteVisits, selectedRange, countDirect)}
+          />
+          <MetricCard
             label="Search"
-            value={countMatchingRefs(rangeData, searchEngines)}
+            value={searchVisits}
             comparison={counterTrend(siteVisits, selectedRange, (v) => countMatchingRefs(v, searchEngines))}
           />
           <MetricCard
             label="Social"
-            value={countMatchingRefs(rangeData, socialSites)}
+            value={socialVisits}
             comparison={counterTrend(siteVisits, selectedRange, (v) => countMatchingRefs(v, socialSites))}
-          />
-          <MetricCard
-            label="Direct"
-            value={countDirect(rangeData)}
-            comparison={counterTrend(siteVisits, selectedRange, countDirect)}
           />
         </div>
 
-        {/* Secondary panels */}
-        <div className="mb-4 grid gap-3 lg:grid-cols-3">
+        {/* 2. Primary breakdowns — Sources, Pages, Countries */}
+        <div className="mb-5 grid gap-3 md:grid-cols-3">
+          {primaryPies.map((dimension) => {
+            const panel = piePanels.find(([d]) => d === dimension)
+            return (
+              <PiePanel
+                key={`${effectiveSite}-${selectedRange}-${dimension}`}
+                title={panel?.[1] ?? dimension}
+                data={toSlices(rangeData[dimension])}
+              />
+            )
+          })}
+        </div>
+
+        {/* 3. Secondary breakdowns — Devices, Platforms, Browsers, Languages, Screen */}
+        <div className="mb-5 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+          {secondaryPies.map((dimension) => {
+            const panel = piePanels.find(([d]) => d === dimension)
+            return (
+              <PiePanel
+                key={`${effectiveSite}-${selectedRange}-${dimension}`}
+                title={panel?.[1] ?? dimension}
+                data={toSlices(rangeData[dimension])}
+              />
+            )
+          })}
+        </div>
+
+        {/* 4. Temporal patterns — moved down, less prominent */}
+        <div className="mb-5 grid gap-3 lg:grid-cols-3">
           <DynamicsPanel dates={rangeData.date ?? {}} />
           <BarListPanel title="Hours" data={normalizeHours(rangeData.hour ?? {})} />
           <BarListPanel title="Weekdays" data={rangeData.weekday ?? {}} />
         </div>
 
-        {/* Pie charts */}
-        <div className="mb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {piePanels.map(([dimension, title]) => (
-            <PiePanel
-              key={`${effectiveSite}-${selectedRange}-${dimension}`}
-              title={title}
-              data={toSlices(rangeData[dimension])}
-            />
-          ))}
-        </div>
-
-        {/* Bottom cards */}
+        {/* 5. Admin / bottom */}
         <div className="grid gap-3 lg:grid-cols-2">
           <TrackingCode uuid={dump.user.uuid} />
           <VisitLogs logs={siteDump.logs} />
@@ -353,13 +373,12 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
 
 function DashboardSkeleton() {
   return (
-    <div className="w-full px-4 py-5 sm:px-6">
-      <div className="mb-5 flex gap-3">
-        <div className="skeleton h-8 w-64" />
+    <div className="mx-auto w-full max-w-[1400px] px-5 py-6">
+      <div className="mb-6 flex gap-3">
+        <div className="skeleton h-7 w-64" />
       </div>
       <div className="mb-8">
-        <div className="skeleton mb-3 h-4 w-32" />
-        <div className="grid gap-4 xl:grid-cols-2">
+        <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
           <div className="skeleton h-[380px]" />
           <div className="skeleton h-[380px]" />
         </div>
@@ -381,18 +400,18 @@ function MetricCard({ label, value, comparison }: {
   const isPositive = comparison.trend === 'positive'
   const isNegative = comparison.trend === 'negative'
   return (
-    <div className="rounded-xl border border-border/40 bg-card p-4 transition-shadow hover:shadow-sm">
-      <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">{label}</p>
+    <div className="rounded-xl border border-border/40 bg-card p-4 transition-all duration-200 hover:border-border/70 hover:shadow-[0_2px_12px_-4px_rgba(0,0,0,0.06)]">
+      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{label}</p>
       <p className="mt-1.5 font-mono text-2xl font-semibold tabular-nums tracking-tight">
         {formatNumber(value)}
       </p>
       {comparison.percent && (
         <span
-          className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium tabular-nums ${
+          className={`mt-2 inline-block rounded-md px-1.5 py-0.5 font-mono text-[11px] font-medium tabular-nums ${
             isPositive
-              ? 'bg-accent/15 text-accent'
+              ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
               : isNegative
-                ? 'bg-destructive/15 text-destructive'
+                ? 'bg-red-500/10 text-red-600 dark:text-red-400'
                 : 'bg-secondary text-muted-foreground'
           }`}
         >
@@ -420,9 +439,9 @@ function RangeBar({ selectedRange, setSelectedRange, loadCustomRange }: {
           <button
             key={range.value}
             onClick={() => { setSelectedRange(range.value); setShowCustom(false) }}
-            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
+            className={`rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-all duration-150 ${
               selectedRange === range.value && !showCustom
-                ? 'bg-primary text-primary-foreground'
+                ? 'bg-foreground text-background shadow-sm'
                 : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
             }`}
           >
@@ -431,9 +450,9 @@ function RangeBar({ selectedRange, setSelectedRange, loadCustomRange }: {
         ))}
         <button
           onClick={() => setShowCustom(true)}
-          className={`rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 ${
+          className={`rounded-lg px-2.5 py-1.5 text-[11px] font-medium transition-all duration-150 ${
             showCustom
-              ? 'bg-primary text-primary-foreground'
+              ? 'bg-foreground text-background shadow-sm'
               : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
           }`}
         >
@@ -442,13 +461,13 @@ function RangeBar({ selectedRange, setSelectedRange, loadCustomRange }: {
       </div>
       {showCustom && (
         <div className="flex items-center gap-2">
-          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-8 text-xs" />
-          <span className="text-xs text-muted-foreground">to</span>
-          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-8 text-xs" />
+          <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="h-7 text-xs" />
+          <span className="text-[11px] text-muted-foreground">to</span>
+          <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="h-7 text-xs" />
           <Button
             variant="outline"
             size="sm"
-            className="h-8 text-xs"
+            className="h-7 text-xs"
             onClick={() => {
               if (!from || !to) return
               loadCustomRange(from, to).catch((err) =>
@@ -480,14 +499,14 @@ function SiteTable({ table, selectedSite, onSelectSite }: {
         {table.getHeaderGroups().map((group) => (
           <TableRow key={group.id}>
             {group.headers.map((header) => (
-              <TableHead key={header.id} className="text-xs">
+              <TableHead key={header.id} className="text-[10px] px-2 py-1.5">
                 <button
                   className="flex items-center gap-1 text-left"
                   onClick={header.column.getToggleSortingHandler()}
                   type="button"
                 >
                   {flexRender(header.column.columnDef.header, header.getContext())}
-                  <ArrowDownUp size={10} className="text-muted-foreground" />
+                  <ArrowDownUp size={9} className="text-muted-foreground" />
                 </button>
               </TableHead>
             ))}
@@ -499,11 +518,11 @@ function SiteTable({ table, selectedSite, onSelectSite }: {
           <TableRow
             key={row.id}
             data-state={row.original.site === selectedSite ? 'selected' : undefined}
-            className="cursor-pointer text-xs"
+            className="cursor-pointer text-xs transition-colors"
             onClick={() => onSelectSite(row.original.site)}
           >
             {row.getVisibleCells().map((cell) => (
-              <TableCell key={cell.id}>
+              <TableCell key={cell.id} className="px-2 py-1.5">
                 {flexRender(cell.column.columnDef.cell, cell.getContext())}
               </TableCell>
             ))}
@@ -521,30 +540,31 @@ function PiePanel({ title, data }: { title: string; data: Slice[] }) {
   )
   return (
     <Card className="border-border/40 shadow-none">
-      <CardHeader className="pb-1">
-        <CardDescription className="text-xs uppercase tracking-widest">{title}</CardDescription>
-        <CardTitle className="font-mono text-base tabular-nums">
+      <CardHeader className="pb-1 px-4 pt-4">
+        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">{title}</CardDescription>
+        <CardTitle className="font-mono text-sm tabular-nums tracking-tight">
           {data.length ? formatNumber(sum(data.map((d) => d.value))) : 'No data'}
         </CardTitle>
       </CardHeader>
-      <CardContent>
-        <ChartContainer config={config} className="mx-auto aspect-square max-h-[220px] w-full">
+      <CardContent className="px-4 pb-4">
+        <ChartContainer config={config} className="mx-auto aspect-square max-h-[180px] w-full">
           <PieChart accessibilityLayer>
             <ChartTooltip content={<ChartTooltipContent nameKey="name" hideLabel />} />
             <Pie
               data={data}
               dataKey="value"
               nameKey="name"
-              innerRadius={48}
-              outerRadius={78}
+              innerRadius={40}
+              outerRadius={65}
               paddingAngle={2}
+              strokeWidth={0}
             >
               {data.map((item) => (
                 <Cell key={item.key} fill={item.fill} />
               ))}
             </Pie>
             <ChartLegend
-              content={<ChartLegendContent nameKey="name" className="flex-wrap gap-1.5 text-[10px]" />}
+              content={<ChartLegendContent nameKey="name" className="flex-wrap gap-1 text-[9px]" />}
             />
           </PieChart>
         </ChartContainer>
@@ -562,12 +582,12 @@ function DynamicsPanel({ dates }: { dates: Record<string, number> }) {
 
   return (
     <Card className="border-border/40 shadow-none">
-      <CardHeader className="pb-1">
-        <CardDescription className="text-xs uppercase tracking-widest">Dynamics</CardDescription>
-        <CardTitle className="text-base font-medium">{trend.title}</CardTitle>
+      <CardHeader className="pb-1 px-4 pt-4">
+        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">Dynamics</CardDescription>
+        <CardTitle className="text-sm font-medium tracking-tight">{trend.title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <p className="text-sm text-muted-foreground">{trend.detail}</p>
+      <CardContent className="px-4 pb-4">
+        <p className="text-xs text-muted-foreground leading-relaxed">{trend.detail}</p>
       </CardContent>
     </Card>
   )
@@ -577,26 +597,26 @@ function BarListPanel({ title, data }: { title: string; data: Record<string, num
   const max = Math.max(1, ...Object.values(data))
   return (
     <Card className="border-border/40 shadow-none">
-      <CardHeader className="pb-1">
-        <CardDescription className="text-xs uppercase tracking-widest">{title}</CardDescription>
-        <CardTitle className="font-mono text-base tabular-nums">
+      <CardHeader className="pb-1 px-4 pt-4">
+        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">{title}</CardDescription>
+        <CardTitle className="font-mono text-sm tabular-nums tracking-tight">
           {formatNumber(sumObject(data))}
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-1.5">
+      <CardContent className="flex flex-col gap-1 px-4 pb-4">
         {Object.entries(data).slice(0, 12).map(([key, value]) => (
-          <div className="grid grid-cols-[4.5rem_1fr_3rem] items-center gap-2" key={key}>
-            <span className="truncate text-xs text-muted-foreground">{key}</span>
-            <span className="h-1.5 rounded-full bg-muted">
+          <div className="grid grid-cols-[3.5rem_1fr_2.5rem] items-center gap-2" key={key}>
+            <span className="truncate text-[11px] text-muted-foreground">{key}</span>
+            <span className="h-1 rounded-full bg-muted">
               <span
-                className="block h-1.5 rounded-full transition-all duration-300"
+                className="block h-1 rounded-full transition-all duration-300"
                 style={{
                   width: `${(value / max) * 100}%`,
                   backgroundColor: 'oklch(from var(--accent) l c h)',
                 }}
               />
             </span>
-            <span className="text-right font-mono text-xs tabular-nums">{value}</span>
+            <span className="text-right font-mono text-[11px] tabular-nums">{value}</span>
           </div>
         ))}
       </CardContent>
@@ -611,50 +631,50 @@ function ShareActions({ dump }: { dump: Dump }) {
 
   if (dump.meta.sessionless) {
     return (
-      <Badge variant="secondary" className="text-xs font-normal">
-        <Eye size={12} className="mr-1" />
+      <Badge variant="secondary" className="text-[11px] font-normal">
+        <Eye size={11} className="mr-1" />
         Viewing {dump.user.id} as guest
       </Badge>
     )
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-wrap items-center gap-1.5">
       {dump.user.token ? (
         <Button
           variant="outline"
           size="sm"
-          className="text-muted-foreground"
+          className="h-7 text-[11px] text-muted-foreground"
           onClick={() => copyText(shareLink).catch((err) =>
             setError(err instanceof Error ? err.message : 'Copy failed'),
           )}
         >
-          <Eye size={14} />
-          <span className="ml-1.5">Guest URL</span>
+          <Eye size={12} />
+          <span className="ml-1">Guest URL</span>
         </Button>
       ) : (
         <Button
           variant="outline"
           size="sm"
-          className="text-muted-foreground"
+          className="h-7 text-[11px] text-muted-foreground"
           onClick={() => postAndReload('/resettoken').catch((err) => setError(err.message))}
         >
-          <EyeOff size={14} />
-          <span className="ml-1.5">Enable guest</span>
+          <EyeOff size={12} />
+          <span className="ml-1">Enable guest</span>
         </Button>
       )}
       {dump.user.token && (
         <Button
           variant="ghost"
           size="sm"
-          className="text-muted-foreground"
+          className="h-7 text-[11px] text-muted-foreground"
           onClick={() => postAndReload('/deletetoken').catch((err) => setError(err.message))}
         >
           Remove guest
         </Button>
       )}
-      <Button asChild size="sm" variant="outline" className="text-muted-foreground">
-        <a href="#tracking-code"><Plus size={14} className="mr-1.5" />Add site</a>
+      <Button asChild size="sm" variant="outline" className="h-7 text-[11px] text-muted-foreground">
+        <a href="#tracking-code"><Plus size={12} className="mr-1" />Add site</a>
       </Button>
       {error && (
         <Alert variant="destructive" className="basis-full">
@@ -671,12 +691,12 @@ function TrackingCode({ uuid }: { uuid: string }) {
   const code = `<script src="${server}/script.js" data-id="${uuid}" data-utcoffset="${getUTCOffset()}" data-server="${server}"></script>`
   return (
     <Card id="tracking-code" className="border-border/40 shadow-none">
-      <CardHeader className="pb-1">
-        <CardDescription className="text-xs uppercase tracking-widest">Add website</CardDescription>
-        <CardTitle className="text-base font-medium">Tracking code</CardTitle>
+      <CardHeader className="pb-1 px-4 pt-4">
+        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">Add website</CardDescription>
+        <CardTitle className="text-sm font-medium tracking-tight">Tracking code</CardTitle>
       </CardHeader>
-      <CardContent>
-        <pre className="overflow-x-auto rounded-lg bg-zinc-950 p-4 text-xs text-zinc-300">
+      <CardContent className="px-4 pb-4">
+        <pre className="overflow-x-auto rounded-lg bg-zinc-950 p-3.5 text-[11px] leading-relaxed text-zinc-400">
           <code>{code}</code>
         </pre>
       </CardContent>
@@ -688,17 +708,17 @@ function VisitLogs({ logs }: { logs: Record<string, number> }) {
   const entries = Object.entries(logs).sort((a, b) => b[1] - a[1])
   return (
     <Card className="border-border/40 shadow-none">
-      <CardHeader className="pb-1">
-        <CardDescription className="text-xs uppercase tracking-widest">Recent visits</CardDescription>
-        <CardTitle className="font-mono text-base tabular-nums">
+      <CardHeader className="pb-1 px-4 pt-4">
+        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">Recent visits</CardDescription>
+        <CardTitle className="font-mono text-sm tabular-nums tracking-tight">
           {entries.length} log entries
         </CardTitle>
       </CardHeader>
-      <CardContent className="flex max-h-56 flex-col gap-1.5 overflow-auto">
+      <CardContent className="flex max-h-52 flex-col gap-1 overflow-auto px-4 pb-4">
         {entries.map(([log, ts]) => (
           <div
             key={`${log}-${ts}`}
-            className="rounded-md border border-border/40 px-2.5 py-1.5 font-mono text-xs text-muted-foreground"
+            className="rounded-md border border-border/30 px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground"
           >
             {log}
           </div>
@@ -714,16 +734,16 @@ function DeleteSite({ site }: { site: string }) {
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="text-destructive">
-          <Settings size={14} />
-          <span className="ml-1.5">Delete</span>
+        <Button variant="outline" size="sm" className="h-7 text-xs text-destructive">
+          <Settings size={12} />
+          <span className="ml-1">Delete</span>
         </Button>
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Delete {site} permanently?</DialogTitle>
           <DialogDescription>
-            This removes hot visit data, archive records, and logs for this site.
+            This removes all visit data, archive records, and logs for this site.
             This cannot be undone.
           </DialogDescription>
         </DialogHeader>
@@ -778,7 +798,7 @@ function StateScreen({ title, detail, action, tone = 'default' }: {
     <main className="flex min-h-[70vh] items-center justify-center p-6">
       <Card className="max-w-md border-border/40 shadow-none">
         <CardHeader>
-          <CardTitle className="text-xl font-semibold">{title}</CardTitle>
+          <CardTitle className="text-lg font-semibold tracking-tight">{title}</CardTitle>
           <CardDescription className="text-sm">{detail}</CardDescription>
         </CardHeader>
         {action && <CardContent className="flex flex-col gap-3">{action}</CardContent>}
@@ -792,7 +812,7 @@ function AuthScreen() {
     <main className="flex min-h-[80vh] items-center justify-center p-6">
       <Card className="w-full max-w-md border-border/40 shadow-none">
         <CardHeader>
-          <CardTitle className="text-2xl font-semibold tracking-tight">Welcome back</CardTitle>
+          <CardTitle className="text-xl font-semibold tracking-tight">Welcome back</CardTitle>
           <CardDescription>Sign in or create a Counter account.</CardDescription>
         </CardHeader>
         <CardContent>

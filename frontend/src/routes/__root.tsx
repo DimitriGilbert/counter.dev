@@ -3,8 +3,7 @@ import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 import { BarChart3 } from 'lucide-react'
 
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
+import { ThemeToggle } from '@/components/theme-toggle'
 
 import '../styles.css'
 
@@ -14,22 +13,23 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   return (
-    <div className="min-h-[100dvh] flex flex-col">
-      <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur-lg">
-        <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
-          <Link to="/" className="flex items-center gap-2.5 font-medium tracking-tight">
-            <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-              <BarChart3 aria-hidden="true" size={16} strokeWidth={2} />
+    <div className="min-h-[100dvh] flex flex-col bg-background">
+      <header className="sticky top-0 z-40 w-full border-b border-border/50 bg-background/70 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-4 px-5 py-3">
+          <Link to="/" className="flex items-center gap-2.5 font-medium tracking-tight transition-opacity hover:opacity-80">
+            <span className="flex size-7 items-center justify-center rounded-md bg-foreground text-background">
+              <BarChart3 aria-hidden="true" size={14} strokeWidth={2} />
             </span>
-            <span>Counter</span>
+            <span className="text-sm">Counter</span>
           </Link>
-          <nav className="flex items-center gap-2">
-            <Badge variant="secondary" className="hidden font-mono text-[11px] font-normal sm:inline-flex">
-              /app-next
-            </Badge>
-            <Button asChild variant="ghost" size="sm" className="text-muted-foreground">
-              <a href="https://counter.dev/app#demo">Legacy app</a>
-            </Button>
+          <nav className="flex items-center gap-1">
+            <ThemeToggle />
+            <Link
+              to="https://counter.dev/app#demo"
+              className="ml-1 rounded-md px-2.5 py-1.5 text-xs text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+            >
+              Legacy app
+            </Link>
           </nav>
         </div>
       </header>
@@ -38,8 +38,8 @@ function RootComponent() {
         <Outlet />
       </main>
 
-      <footer className="w-full border-t border-border/40 px-4 py-6 sm:px-6">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <footer className="w-full border-t border-border/30 px-5 py-5">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between text-[11px] text-muted-foreground/70">
           <span>Privacy-friendly web analytics</span>
           <span className="font-mono">counter.dev</span>
         </div>
