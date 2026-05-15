@@ -62,7 +62,17 @@ import {
 } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-export const Route = createFileRoute('/')({ component: Dashboard })
+export const Route = createFileRoute('/')({
+  component: Dashboard,
+  errorComponent: ({ error }) => (
+    <StateScreen
+      title="Dashboard failed safely"
+      detail={error instanceof Error ? error.message : 'An unexpected dashboard error occurred.'}
+      tone="error"
+      action={<Button onClick={() => window.location.reload()}>Reload dashboard</Button>}
+    />
+  ),
+})
 
 gsap.registerPlugin(ScrollTrigger)
 
@@ -199,8 +209,11 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
   const scope = React.useRef<HTMLDivElement>(null)
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'total', desc: true }])
   const { dump, selectedSite, selectedRange, setSelectedSite, setSelectedRange, lineData, lineConfig, tableRows } = dashboard
-  const siteDump = dump.sites[selectedSite]
-  const rangeData = siteDump?.visits[selectedRange] ?? emptyVisitData()
+  const siteNames = Object.keys(dump.sites)
+  const effectiveSelectedSite = dump.sites[selectedSite] ? selectedSite : siteNames[0]
+  const siteDump = effectiveSelectedSite ? dump.sites[effectiveSelectedSite] : undefined
+  const siteVisits = siteDump?.visits ?? emptyTimedVisits()
+  const rangeData = siteVisits[selectedRange] ?? emptyVisitData()
 
   useGSAP(
     () => {
@@ -232,7 +245,7 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
     getSortedRowModel: getSortedRowModel(),
   })
 
-  if (!Object.keys(dump.sites).length) {
+  if (!siteNames.length || !effectiveSelectedSite || !siteDump) {
     return <SetupScreen uuid={dump.user.uuid} />
   }
 
@@ -255,7 +268,7 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
           <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-end">
             <Controls
               dump={dump}
-              selectedSite={selectedSite}
+              selectedSite={effectiveSelectedSite}
               selectedRange={selectedRange}
               setSelectedSite={setSelectedSite}
               setSelectedRange={setSelectedRange}
@@ -294,7 +307,7 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
             <CardTitle>Site visit data</CardTitle>
           </CardHeader>
           <CardContent>
-            <SiteTable table={table} selectedSite={selectedSite} onSelectSite={setSelectedSite} />
+            <SiteTable table={table} selectedSite={effectiveSelectedSite} onSelectSite={setSelectedSite} />
           </CardContent>
         </Card>
       </section>
@@ -302,23 +315,23 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
       <section className="w-full px-4 py-10 sm:px-8 lg:px-12">
         <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="flex flex-col gap-3">
-            <h2 className="text-4xl font-semibold tracking-tight sm:text-6xl">{selectedSite}</h2>
+            <h2 className="text-4xl font-semibold tracking-tight sm:text-6xl">{effectiveSelectedSite}</h2>
             <p className="text-muted-foreground">Real breakdowns from `{selectedRange}` visit dimensions.</p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => downloadCSV(selectedSite, selectedRange, rangeData)}>
+            <Button variant="outline" onClick={() => downloadCSV(effectiveSelectedSite, selectedRange, rangeData)}>
               <Download data-icon="inline-start" />
               Download CSV
             </Button>
-            {!dump.meta.sessionless ? <DeleteSite site={selectedSite} /> : null}
+            {!dump.meta.sessionless ? <DeleteSite site={effectiveSelectedSite} /> : null}
           </div>
         </div>
 
         <div className="mb-4 grid gap-4 md:grid-cols-4">
-          <CounterCard label="Visits" value={countTotal(rangeData)} comparison={counterTrend(siteDump.visits, selectedRange, countTotal)} />
-          <CounterCard label="Search engines" value={countMatchingRefs(rangeData, searchEngines)} comparison={counterTrend(siteDump.visits, selectedRange, (visits) => countMatchingRefs(visits, searchEngines))} />
-          <CounterCard label="Social networks" value={countMatchingRefs(rangeData, socialSites)} comparison={counterTrend(siteDump.visits, selectedRange, (visits) => countMatchingRefs(visits, socialSites))} />
-          <CounterCard label="Direct" value={countDirect(rangeData)} comparison={counterTrend(siteDump.visits, selectedRange, countDirect)} />
+          <CounterCard label="Visits" value={countTotal(rangeData)} comparison={counterTrend(siteVisits, selectedRange, countTotal)} />
+          <CounterCard label="Search engines" value={countMatchingRefs(rangeData, searchEngines)} comparison={counterTrend(siteVisits, selectedRange, (visits) => countMatchingRefs(visits, searchEngines))} />
+          <CounterCard label="Social networks" value={countMatchingRefs(rangeData, socialSites)} comparison={counterTrend(siteVisits, selectedRange, (visits) => countMatchingRefs(visits, socialSites))} />
+          <CounterCard label="Direct" value={countDirect(rangeData)} comparison={counterTrend(siteVisits, selectedRange, countDirect)} />
         </div>
 
         <div className="mb-4 grid gap-4 lg:grid-cols-3">
@@ -329,7 +342,7 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
 
         <div className="pie-grid grid-flow-dense grid w-full gap-4 md:grid-cols-2 xl:grid-cols-4">
           {piePanels.map(([dimension, title]) => (
-            <PiePanel key={`${selectedSite}-${selectedRange}-${dimension}`} title={title} data={toSlices(rangeData[dimension])} />
+            <PiePanel key={`${effectiveSelectedSite}-${selectedRange}-${dimension}`} title={title} data={toSlices(rangeData[dimension])} />
           ))}
         </div>
       </section>
@@ -357,18 +370,26 @@ function useCounterDump(): DashboardState {
     const source = new EventSource(`/dump?${params.toString()}`)
 
     source.onmessage = (event) => {
-      const data = JSON.parse(event.data) as EventSourceData
+      let data: EventSourceData
+      try {
+        data = JSON.parse(event.data) as EventSourceData
+      } catch {
+        setStatus('error')
+        setError('Counter sent an invalid live event payload.')
+        source.close()
+        return
+      }
       if (data.type === 'nouser') {
         setStatus('nouser')
         source.close()
         return
       }
       if (data.type === 'archive') {
-        setArchives(data.payload as Record<string, Record<string, VisitsData>>)
+        setArchives(normalizeArchivePayload(data.payload))
         return
       }
       if (data.type === 'dump') {
-        setDump(data.payload as Dump)
+        setDump(normalizeDumpPayload(data.payload))
         setStatus('ready')
       }
     }
@@ -396,12 +417,12 @@ function useCounterDump(): DashboardState {
 
   const setSelectedSite = React.useCallback((site: string) => {
     setSelectedSiteState(site)
-    fetch(`/setPrefSite?${encodeURIComponent(site)}`).catch(() => {})
+    persistPreference(`/setPrefSite?${encodeURIComponent(site)}`, setError)
   }, [])
 
   const setSelectedRange = React.useCallback((range: RangeKey) => {
     setSelectedRangeState(range)
-    if (range !== 'daterange') fetch(`/setPrefRange?${encodeURIComponent(range)}`).catch(() => {})
+    if (range !== 'daterange') persistPreference(`/setPrefRange?${encodeURIComponent(range)}`, setError)
   }, [])
 
   const loadCustomRange = React.useCallback(async (from: string, to: string) => {
@@ -410,7 +431,7 @@ function useCounterDump(): DashboardState {
     params.set('to', to)
     const response = await fetch(`/query?${params.toString()}`, { credentials: 'include' })
     if (!response.ok) throw new Error('Failed to fetch custom range')
-    setCustomRange(await response.json())
+    setCustomRange(normalizeCustomRangePayload(await response.json()))
     setSelectedRangeState('daterange')
   }, [])
 
@@ -422,12 +443,16 @@ function useCounterDump(): DashboardState {
     return { status: status === 'ready' ? 'connecting' : status, error }
   }
 
-  return { status: 'ready', dump: patchedDump, selectedSite, selectedRange, setSelectedSite, setSelectedRange, loadCustomRange, tableRows, lineData, lineConfig }
+  const sites = Object.keys(patchedDump.sites).sort((a, b) => patchedDump.sites[b].count - patchedDump.sites[a].count)
+  const effectiveSelectedSite = patchedDump.sites[selectedSite] ? selectedSite : sites[0] || ''
+
+  return { status: 'ready', dump: patchedDump, selectedSite: effectiveSelectedSite, selectedRange, setSelectedSite, setSelectedRange, loadCustomRange, tableRows, lineData, lineConfig }
 }
 
 function Controls({ dump, selectedSite, selectedRange, setSelectedSite, setSelectedRange, onCustomRange }: { dump: Dump; selectedSite: string; selectedRange: RangeKey; setSelectedSite: (site: string) => void; setSelectedRange: (range: RangeKey) => void; onCustomRange: (from: string, to: string) => Promise<void> }) {
   const [from, setFrom] = React.useState('')
   const [to, setTo] = React.useState('')
+  const [error, setError] = React.useState('')
   const sites = Object.keys(dump.sites).sort((a, b) => dump.sites[b].count - dump.sites[a].count)
 
   return (
@@ -444,7 +469,8 @@ function Controls({ dump, selectedSite, selectedRange, setSelectedSite, setSelec
           <Input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
           <Input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
         </div>
-        <Button variant="outline" onClick={() => from && to && onCustomRange(from, to)}>Load range</Button>
+        <Button variant="outline" onClick={() => from && to && onCustomRange(from, to).catch((err) => setError(err instanceof Error ? err.message : 'Failed to load range'))}>Load range</Button>
+        {error ? <Alert variant="destructive" className="md:col-span-4"><AlertTitle>Custom range failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
       </CardContent>
     </Card>
   )
@@ -478,14 +504,16 @@ function PiePanel({ title, data }: { title: string; data: Slice[] }) {
 }
 
 function ShareActions({ dump }: { dump: Dump }) {
+  const [error, setError] = React.useState('')
   const baseUrl = `${window.location.origin}/app-next/`
   const shareLink = `${baseUrl}?user=${encodeURIComponent(dump.user.id)}&token=${encodeURIComponent(dump.user.token)}`
   if (dump.meta.sessionless) return <Badge variant="secondary"><Eye aria-hidden="true" /> Viewing {dump.user.id} as guest</Badge>
   return (
     <div className="flex flex-wrap gap-2">
-      {dump.user.token ? <Button variant="outline" onClick={() => navigator.clipboard.writeText(shareLink)}><Eye data-icon="inline-start" /> Copy guest URL</Button> : <Button variant="outline" onClick={() => fetch('/resettoken', { method: 'POST' }).then(() => window.location.reload())}><EyeOff data-icon="inline-start" /> Enable guest access</Button>}
-      {dump.user.token ? <Button variant="ghost" onClick={() => fetch('/deletetoken', { method: 'POST' }).then(() => window.location.reload())}>Remove guest access</Button> : null}
+      {dump.user.token ? <Button variant="outline" onClick={() => copyText(shareLink).catch((err) => setError(err instanceof Error ? err.message : 'Copy failed'))}><Eye data-icon="inline-start" /> Copy guest URL</Button> : <Button variant="outline" onClick={() => postAndReload('/resettoken').catch((err) => setError(err.message))}><EyeOff data-icon="inline-start" /> Enable guest access</Button>}
+      {dump.user.token ? <Button variant="ghost" onClick={() => postAndReload('/deletetoken').catch((err) => setError(err.message))}>Remove guest access</Button> : null}
       <Button asChild><a href="#tracking-code"><Plus data-icon="inline-start" /> Add website</a></Button>
+      {error ? <Alert variant="destructive" className="basis-full"><AlertTitle>Action failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
     </div>
   )
 }
@@ -502,6 +530,7 @@ function VisitLogs({ logs }: { logs: Record<string, number> }) {
 
 function DeleteSite({ site }: { site: string }) {
   const [confirm, setConfirm] = React.useState('')
+  const [error, setError] = React.useState('')
   return (
     <Dialog>
       <DialogTrigger asChild><Button variant="destructive"><Settings data-icon="inline-start" /> Delete site</Button></DialogTrigger>
@@ -515,8 +544,9 @@ function DeleteSite({ site }: { site: string }) {
           <Input id="confirm-site" value={confirm} onChange={(event) => setConfirm(event.target.value)} placeholder={site} />
         </div>
         <DialogFooter>
-          <Button variant="destructive" disabled={confirm !== site} onClick={() => { const form = new FormData(); form.set('site', site); form.set('confirmSite', confirm); fetch('/deletesite', { method: 'POST', body: form }).then(() => window.location.href = '/dashboard') }}>Delete permanently</Button>
+          <Button variant="destructive" disabled={confirm !== site} onClick={() => { const form = new FormData(); form.set('site', site); form.set('confirmSite', confirm); fetch('/deletesite', { method: 'POST', body: form }).then((response) => { if (!response.ok) throw new Error('Delete failed'); window.location.href = '/dashboard' }).catch((err) => setError(err instanceof Error ? err.message : 'Delete failed')) }}>Delete permanently</Button>
         </DialogFooter>
+        {error ? <Alert variant="destructive"><AlertTitle>Delete failed</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
       </DialogContent>
     </Dialog>
   )
@@ -547,9 +577,10 @@ function DynamicsPanel({ dates }: { dates: Record<string, number> }) { const gro
 function BarListPanel({ title, data }: { title: string; data: Record<string, number> }) { const max = Math.max(1, ...Object.values(data)); return <Card><CardHeader><CardDescription>{title}</CardDescription><CardTitle>{formatNumber(sumObject(data))}</CardTitle></CardHeader><CardContent className="flex flex-col gap-2">{Object.entries(data).slice(0, 12).map(([key, value]) => <div className="grid grid-cols-[5rem_1fr_4rem] items-center gap-2 text-sm" key={key}><span className="truncate text-muted-foreground">{key}</span><span className="h-2 rounded-full bg-muted"><span className="block h-2 rounded-full bg-primary" style={{ width: `${(value / max) * 100}%` }} /></span><span className="text-right font-mono">{value}</span></div>)}</CardContent></Card> }
 
 function patchDump(dump: Dump, archives: Record<string, Record<string, VisitsData>>, customRange: Record<string, VisitsData>): Dump {
-  const next = structuredClone(dump) as Dump
+  const next = cloneDump(dump)
   for (const site of Object.keys(next.sites)) {
-    const visits = next.sites[site].visits
+    const visits = next.sites[site].visits ?? emptyTimedVisits()
+    next.sites[site].visits = visits
     visits.last7 = patchVisit(mergeVisits([visits.day, visits.yesterday, archives['-7:-2']?.[site] ?? emptyVisitData()]))
     visits.last30 = patchVisit(mergeVisits([visits.day, visits.yesterday, archives['-30:-2']?.[site] ?? emptyVisitData()]))
     visits.daterange = patchVisit(customRange[site] ?? emptyVisitData())
@@ -559,13 +590,13 @@ function patchDump(dump: Dump, archives: Record<string, Record<string, VisitsDat
 
 function makeTableRows(dump: Dump, range: RangeKey): SiteRow[] {
   return Object.entries(dump.sites).map(([site, value], index) => {
-    const visits = value.visits[range] ?? emptyVisitData()
+    const visits = (value.visits ?? emptyTimedVisits())[range] ?? emptyVisitData()
     return { site, total: countTotal(visits), search: countMatchingRefs(visits, searchEngines), social: countMatchingRefs(visits, socialSites), direct: countDirect(visits), color: colors[index % colors.length] }
   })
 }
 
 function makeLineData(dump: Dump, range: RangeKey): LinePoint[] {
-  const groupedBySite = Object.fromEntries(Object.entries(dump.sites).map(([site, siteDump]) => [site, graphSeries(siteDump.visits[range] ?? emptyVisitData(), range)]))
+  const groupedBySite = Object.fromEntries(Object.entries(dump.sites).map(([site, siteDump]) => [site, graphSeries((siteDump.visits ?? emptyTimedVisits())[range] ?? emptyVisitData(), range)]))
   const buckets = new Set<string>()
   for (const grouped of Object.values(groupedBySite)) grouped.labels.forEach((label) => buckets.add(label))
   return Array.from(buckets).map((bucket) => {
@@ -587,6 +618,7 @@ function mergeVisits(visits: VisitsData[]): VisitsData {
 
 function patchVisit(visit: VisitsData): VisitsData { return { ...emptyVisitData(), ...visit, ref: visit.ref ?? {} } }
 function emptyVisitData(): VisitsData { return { date: {}, hour: {}, weekday: {}, ref: {}, country: {}, device: {}, platform: {}, browser: {}, lang: {}, screen: {}, page: {} } }
+function emptyTimedVisits(): TimedVisits { return { day: emptyVisitData(), yesterday: emptyVisitData(), last7: emptyVisitData(), last30: emptyVisitData(), month: emptyVisitData(), year: emptyVisitData(), all: emptyVisitData(), daterange: emptyVisitData() } }
 function toSlices(values: Record<string, number> = {}): Slice[] { return Object.entries(groupData(values, 7)).sort((a, b) => b[1] - a[1]).map(([name, value], index) => ({ name, value, key: siteKey(name), fill: colors[index % colors.length] })) }
 function groupData(values: Record<string, number>, limit: number) { const entries = Object.entries(values).filter(([, value]) => value > 0).sort((a, b) => b[1] - a[1]); const top = entries.slice(0, limit); const other = sum(entries.slice(limit).map(([, value]) => value)); return Object.fromEntries(other ? [...top, ['Other', other]] : top) }
 function sumObject(values: Record<string, number> = {}) { return sum(Object.values(values)) }
@@ -608,3 +640,103 @@ function groupDates(dates: Record<string, number>) { const entries = Object.entr
 function weekNumber(date: Date) { const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7)); const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1)); return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7) }
 function normalizeHours(hours: Record<string, number>) { return Object.fromEntries(Array.from({ length: 24 }, (_, hour) => [hourLabel(String(hour)), hours[String(hour)] ?? 0])) }
 function trendSummary(vals: number[]) { const prev = vals[vals.length - 2] ?? 0; const prevPrev = vals[vals.length - 3] ?? 0; if (prevPrev + prev <= 2) return { title: 'Good stability', detail: 'Only a few data points in the previous buckets.' }; const percent = Math.round((prev / Math.max(1, prevPrev) - 1) * 100); if (percent > 10) return { title: 'Positive dynamics', detail: `${percent}% growth compared with the previous bucket.` }; if (percent < -10) return { title: 'Negative dynamics', detail: `${Math.abs(percent)}% decline compared with the previous bucket.` }; return { title: 'Good stability', detail: 'Traffic is stable compared with the previous bucket.' } }
+
+function normalizeDumpPayload(payload: unknown): Dump {
+  const raw = isRecord(payload) ? payload : {}
+  const rawUser = isRecord(raw.user) ? raw.user : {}
+  const rawSites = isRecord(raw.sites) ? raw.sites : {}
+  const sites: Record<string, SiteDump> = {}
+  for (const [site, value] of Object.entries(rawSites)) {
+    if (!isRecord(value)) continue
+    sites[site] = {
+      count: toNumber(value.count),
+      logs: normalizeNumberMap(value.logs),
+      visits: normalizeTimedVisits(value.visits),
+    }
+  }
+  return {
+    sites,
+    user: {
+      id: toString(rawUser.id),
+      token: toString(rawUser.token),
+      uuid: toString(rawUser.uuid),
+      isSubscribed: Boolean(rawUser.isSubscribed),
+      prefs: normalizeStringMap(rawUser.prefs),
+    },
+    meta: normalizeStringMap(raw.meta),
+  }
+}
+
+function normalizeArchivePayload(payload: unknown): Record<string, Record<string, VisitsData>> {
+  const raw = isRecord(payload) ? payload : {}
+  const result: Record<string, Record<string, VisitsData>> = {}
+  for (const [range, sites] of Object.entries(raw)) result[range] = normalizeCustomRangePayload(sites)
+  return result
+}
+
+function normalizeCustomRangePayload(payload: unknown): Record<string, VisitsData> {
+  const raw = isRecord(payload) ? payload : {}
+  const result: Record<string, VisitsData> = {}
+  for (const [site, visits] of Object.entries(raw)) result[site] = normalizeVisitsData(visits)
+  return result
+}
+
+function normalizeTimedVisits(payload: unknown): TimedVisits {
+  const raw = isRecord(payload) ? payload : {}
+  const visits = emptyTimedVisits()
+  for (const range of ['day', 'yesterday', 'last7', 'last30', 'month', 'year', 'all', 'daterange'] as RangeKey[]) visits[range] = normalizeVisitsData(raw[range])
+  return visits
+}
+
+function normalizeVisitsData(payload: unknown): VisitsData {
+  const raw = isRecord(payload) ? payload : {}
+  const visits = emptyVisitData()
+  for (const [dimension, values] of Object.entries(raw)) visits[dimension] = normalizeNumberMap(values)
+  return visits
+}
+
+function normalizeNumberMap(payload: unknown): Record<string, number> {
+  const raw = isRecord(payload) ? payload : {}
+  return Object.fromEntries(Object.entries(raw).map(([key, value]) => [key, toNumber(value)]).filter(([, value]) => Number.isFinite(value)))
+}
+
+function normalizeStringMap(payload: unknown): Record<string, string> {
+  const raw = isRecord(payload) ? payload : {}
+  return Object.fromEntries(Object.entries(raw).map(([key, value]) => [key, toString(value)]))
+}
+
+function cloneDump(dump: Dump): Dump {
+  return normalizeDumpPayload(JSON.parse(JSON.stringify(dump)))
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function toString(value: unknown) {
+  return typeof value === 'string' ? value : value == null ? '' : String(value)
+}
+
+function toNumber(value: unknown) {
+  return typeof value === 'number' ? value : Number(value) || 0
+}
+
+function persistPreference(url: string, setError: (message: string) => void) {
+  fetch(url).then((response) => {
+    if (!response.ok) throw new Error('Preference save failed')
+  }).catch((err) => setError(err instanceof Error ? err.message : 'Preference save failed'))
+}
+
+async function postAndReload(url: string) {
+  const response = await fetch(url, { method: 'POST' })
+  if (!response.ok) throw new Error('Request failed')
+  window.location.reload()
+}
+
+async function copyText(value: string) {
+  if (navigator.clipboard) {
+    await navigator.clipboard.writeText(value)
+    return
+  }
+  throw new Error('Clipboard is unavailable in this browser')
+}
