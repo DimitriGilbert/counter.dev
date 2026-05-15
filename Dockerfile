@@ -23,9 +23,10 @@ FROM alpine:3.20 AS geoip
 
 RUN apk add --no-cache curl gzip \
     && MMDB_NAME=dbip-country-lite-$(date +%Y-%m).mmdb \
-    && curl -fSL -o /tmp/${MMDB_NAME}.gz "https://download.db-ip.com/free/${MMDB_NAME}.gz" \
-    && gzip -d /tmp/${MMDB_NAME}.gz \
-    && mv /tmp/${MMDB_NAME} /out/dbip-country-lite.mmdb
+    && mkdir -p /out \
+    && curl -fSL -o /tmp/dbip.mmdb.gz "https://download.db-ip.com/free/${MMDB_NAME}.gz" \
+    && gzip -d /tmp/dbip.mmdb.gz \
+    && mv /tmp/dbip.mmdb /out/dbip-country-lite.mmdb
 
 FROM alpine:3.20 AS runtime
 
