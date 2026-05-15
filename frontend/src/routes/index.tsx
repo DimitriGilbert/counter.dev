@@ -341,8 +341,9 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
           <PagesTable data={rangeData.page ?? {}} />
         </div>
 
-        {/* 3. Primary acquisition/location breakdowns */}
-        <div className="mb-5 grid gap-3 md:grid-cols-2">
+        {/* 3. Recent visits + acquisition/location breakdowns */}
+        <div className="mb-5 grid gap-3 lg:grid-cols-3">
+          <VisitLogs logs={siteDump.logs} />
           {primaryPies.map((dimension) => {
             const panel = piePanels.find(([d]) => d === dimension)
             return (
@@ -386,9 +387,8 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
         </div>
 
         {/* 7. Admin / bottom */}
-        <div className="grid gap-3 lg:grid-cols-2">
+        <div className="grid gap-3">
           <TrackingCode uuid={dump.user.uuid} />
-          <VisitLogs logs={siteDump.logs} />
         </div>
       </section>
     </div>
