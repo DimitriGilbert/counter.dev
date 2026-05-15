@@ -73,6 +73,7 @@ type App struct {
 	Logger       *log.Logger
 	ServeMux     *http.ServeMux
 	Config       Config
+	GeoIP        *GeoIPResolver
 }
 
 func (app *App) ConnectEndpoints() {
@@ -114,6 +115,9 @@ func NewApp() *App {
 	}
 	logger := log.New(io.MultiWriter(os.Stdout, logFile), "", log.LstdFlags|log.Lshortfile)
 
+	geoIPPath := envDefault("GEOIP_DB_PATH", "./dbip-country-lite.mmdb")
+	geoIP := NewGeoIPResolver(geoIPPath, logger)
+
 	db, err := gorm.Open(sqlite.Open(config.ArchiveDatabase), &gorm.Config{})
 	if err != nil {
 		panic("failed to connect sqlite3 database")
@@ -127,6 +131,7 @@ func NewApp() *App {
 		ServeMux:     serveMux,
 		Config:       config,
 		DB:           db,
+		GeoIP:        geoIP,
 	}
 	serveMux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)

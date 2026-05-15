@@ -113,6 +113,10 @@ func init() {
 		if country == "" {
 			country = ctx.R.Header.Get("CF-IPCountry")
 		}
+		if country == "" {
+			ip := lib.RealIP(ctx.R)
+			country = ctx.App.GeoIP.LookupCountry(ip)
+		}
 
 		if country != "" && country != "XX" {
 			visit["country"] = strings.ToLower(country)

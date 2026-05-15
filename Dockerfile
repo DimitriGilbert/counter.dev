@@ -19,6 +19,14 @@ RUN pnpm install --frozen-lockfile
 COPY frontend/ ./
 RUN pnpm build
 
+FROM alpine:3.20 AS geoip
+
+RUN apk add --no-cache curl gzip \
+    && MMDB_NAME=dbip-country-lite-$(date +%Y-%m).mmdb \
+    && curl -fSL -o /tmp/${MMDB_NAME}.gz "https://download.db-ip.com/free/${MMDB_NAME}.gz" \
+    && gzip -d /tmp/${MMDB_NAME}.gz \
+    && mv /tmp/${MMDB_NAME} /out/dbip-country-lite.mmdb
+
 FROM alpine:3.20 AS runtime
 
 RUN apk add --no-cache ca-certificates curl \
@@ -29,6 +37,7 @@ WORKDIR /app
 
 COPY --from=build /out/webstats /usr/local/bin/webstats
 COPY --from=frontend-build /src/frontend/dist ./frontend
+COPY --from=geoip /out/dbip-country-lite.mmdb ./dbip-country-lite.mmdb
 COPY static ./static
 COPY docs ./docs
 
