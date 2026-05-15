@@ -331,8 +331,18 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
           />
         </div>
 
-        {/* 2. Primary breakdowns — Sources, Countries, and Pages pie/table pair */}
-        <div className="mb-5 grid gap-3 xl:grid-cols-[1fr_1fr_2fr]">
+        {/* 2. Visited pages — first detail row after headline metrics */}
+        <div className="mb-5 grid gap-3 lg:grid-cols-[1fr_2fr]">
+          <PiePanel
+            key={`${effectiveSite}-${selectedRange}-page`}
+            title="Visited pages"
+            data={toSlices(rangeData.page)}
+          />
+          <PagesTable data={rangeData.page ?? {}} />
+        </div>
+
+        {/* 3. Primary acquisition/location breakdowns */}
+        <div className="mb-5 grid gap-3 md:grid-cols-2">
           {primaryPies.map((dimension) => {
             const panel = piePanels.find(([d]) => d === dimension)
             return (
@@ -343,17 +353,9 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
               />
             )
           })}
-          <div className="grid gap-3 md:grid-cols-2">
-            <PiePanel
-              key={`${effectiveSite}-${selectedRange}-page`}
-              title="Visited pages"
-              data={toSlices(rangeData.page)}
-            />
-            <PagesTable data={rangeData.page ?? {}} />
-          </div>
         </div>
 
-        {/* 3. Audience breakdown — replaces device/platform/browser pie trio */}
+        {/* 4. Audience breakdown — replaces device/platform/browser pie trio */}
         <div className="mb-5">
           <AudienceStackedBars
             device={rangeData.device ?? {}}
@@ -362,7 +364,7 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
           />
         </div>
 
-        {/* 4. Secondary breakdowns — Languages, Screen */}
+        {/* 5. Secondary breakdowns — Languages, Screen */}
         <div className="mb-5 grid gap-3 md:grid-cols-2">
           {secondaryPies.map((dimension) => {
             const panel = piePanels.find(([d]) => d === dimension)
@@ -376,14 +378,14 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
           })}
         </div>
 
-        {/* 5. Temporal patterns — moved down, less prominent */}
+        {/* 6. Temporal patterns — moved down, less prominent */}
         <div className="mb-5 grid gap-3 lg:grid-cols-3">
           <DynamicsPanel dates={rangeData.date ?? {}} />
           <BarListPanel title="Hours" data={normalizeHours(rangeData.hour ?? {})} />
           <BarListPanel title="Weekdays" data={rangeData.weekday ?? {}} />
         </div>
 
-        {/* 6. Admin / bottom */}
+        {/* 7. Admin / bottom */}
         <div className="grid gap-3 lg:grid-cols-2">
           <TrackingCode uuid={dump.user.uuid} />
           <VisitLogs logs={siteDump.logs} />
