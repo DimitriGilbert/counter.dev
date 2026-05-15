@@ -179,7 +179,7 @@ func init() {
 
 		// DOING THE ABOVE COMMENT FOR HACKER NEWS: rework this!
 
-		lastDump := time.Now()
+		lastDump := time.Now().Add(-time.Second)
 
 		user.HandleSignals(conn, func(err error) {
 

@@ -160,7 +160,7 @@ function Dashboard() {
 function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'total', desc: true }])
   const {
-    dump, selectedSite, selectedRange,
+    dump, selectedSite, selectedRange, connection,
     setSelectedSite, setSelectedRange,
     lineData, lineConfig, tableRows,
     loadCustomRange,
@@ -196,12 +196,17 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
     <div className="mx-auto w-full max-w-[1400px] px-5 py-6">
       {/* Controls */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <RangeBar
-          selectedRange={selectedRange}
-          setSelectedRange={setSelectedRange}
-          loadCustomRange={loadCustomRange}
-        />
-        <ShareActions dump={dump} />
+        <div className="flex items-center gap-3">
+          <RangeBar
+            selectedRange={selectedRange}
+            setSelectedRange={setSelectedRange}
+            loadCustomRange={loadCustomRange}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          <ConnectionBadge status={connection} />
+          <ShareActions dump={dump} />
+        </div>
       </div>
 
       {/* ====== OVERVIEW: 2/3 chart | 1/3 table ====== */}
@@ -621,6 +626,25 @@ function BarListPanel({ title, data }: { title: string; data: Record<string, num
         ))}
       </CardContent>
     </Card>
+  )
+}
+
+function ConnectionBadge({ status }: { status: import('@/lib/types').ConnectionStatus }) {
+  const config = {
+    connecting: { label: 'Connecting', className: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' },
+    live: { label: 'Live', className: 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' },
+    reconnecting: { label: 'Reconnecting', className: 'bg-amber-500/15 text-amber-600 dark:text-amber-400' },
+  }[status]
+
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-[10px] font-medium uppercase tracking-wider ${config.className}`}>
+      <span className={`size-1.5 rounded-full ${
+        status === 'live'
+          ? 'bg-emerald-500 animate-pulse'
+          : 'bg-amber-500'
+      }`} />
+      {config.label}
+    </span>
   )
 }
 

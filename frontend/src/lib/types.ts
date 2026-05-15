@@ -41,8 +41,11 @@ export type SiteRow = {
 export type LinePoint = Record<string, string | number> & { bucket: string }
 export type Slice = { name: string; value: number; key: string; fill: string }
 
+export type ConnectionStatus = 'connecting' | 'live' | 'reconnecting'
+
 export type ReadyDashboard = {
   status: 'ready'
+  connection: ConnectionStatus
   dump: Dump
   selectedSite: string
   selectedRange: RangeKey

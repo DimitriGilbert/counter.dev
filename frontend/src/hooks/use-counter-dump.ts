@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { DashboardState, RangeKey, VisitsData, Dump, TimedVisits } from '@/lib/types'
+import type { DashboardState, RangeKey, VisitsData, Dump, TimedVisits, ConnectionStatus } from '@/lib/types'
 import {
   normalizeDumpPayload,
   normalizeArchivePayload,
@@ -16,6 +16,7 @@ import { ranges } from '@/lib/constants'
 
 export function useCounterDump(): DashboardState {
   const [status, setStatus] = React.useState<'connecting' | 'ready' | 'nouser' | 'error'>('connecting')
+  const [connection, setConnection] = React.useState<ConnectionStatus>('connecting')
   const [error, setError] = React.useState('')
   const [dump, setDump] = React.useState<Dump | null>(null)
   const [archives, setArchives] = React.useState<Record<string, Record<string, VisitsData>>>({})
@@ -27,6 +28,10 @@ export function useCounterDump(): DashboardState {
     const params = new URLSearchParams(window.location.search)
     params.set('utcoffset', getUTCOffset())
     const source = new EventSource(`/dump?${params.toString()}`)
+
+    source.onopen = () => {
+      setConnection('live')
+    }
 
     source.onmessage = (event) => {
       let data: { type: 'dump' | 'archive' | 'oldest-archive-date' | 'nouser'; payload: unknown }
@@ -50,11 +55,16 @@ export function useCounterDump(): DashboardState {
       if (data.type === 'dump') {
         setDump(normalizeDumpPayload(data.payload))
         setStatus('ready')
+        setConnection('live')
       }
     }
     source.onerror = () => {
-      setStatus((current) => (current === 'ready' ? current : 'error'))
-      setError('The live event stream failed before dashboard data was available.')
+      if (status === 'ready' || dump) {
+        setConnection('reconnecting')
+      } else {
+        setStatus('error')
+        setError('The live event stream failed before dashboard data was available.')
+      }
     }
 
     return () => source.close()
@@ -127,6 +137,7 @@ export function useCounterDump(): DashboardState {
 
   return {
     status: 'ready' as const,
+    connection,
     dump: patchedDump,
     selectedSite: effectiveSelectedSite,
     selectedRange,

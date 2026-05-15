@@ -374,6 +374,7 @@ func (user User) delAllSiteLinks() {
 
 func (user User) Signal() {
 	user.redis.Send("PUBLISH", fmt.Sprintf("user:%s", user.Id), "")
+	user.redis.Flush()
 }
 
 func (user User) HandleSignals(conn redis.Conn, cb func(error)) {
