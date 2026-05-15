@@ -14,9 +14,9 @@ export const Route = createRootRoute({
 
 function RootComponent() {
   return (
-    <div className="min-h-[100dvh] bg-background flex flex-col">
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-background/80 backdrop-blur-lg">
-        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between gap-4 px-5 py-3">
+    <div className="min-h-[100dvh] flex flex-col">
+      <header className="sticky top-0 z-40 w-full border-b border-border/60 bg-background/80 backdrop-blur-lg">
+        <div className="flex items-center justify-between gap-4 px-4 py-3 sm:px-6">
           <Link to="/" className="flex items-center gap-2.5 font-medium tracking-tight">
             <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <BarChart3 aria-hidden="true" size={16} strokeWidth={2} />
@@ -38,8 +38,8 @@ function RootComponent() {
         <Outlet />
       </main>
 
-      <footer className="border-t border-border/40 px-5 py-6">
-        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between text-xs text-muted-foreground">
+      <footer className="w-full border-t border-border/40 px-4 py-6 sm:px-6">
+        <div className="flex items-center justify-between text-xs text-muted-foreground">
           <span>Privacy-friendly web analytics</span>
           <span className="font-mono">counter.dev</span>
         </div>

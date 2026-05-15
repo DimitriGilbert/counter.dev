@@ -60,7 +60,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import type { RangeKey, ReadyDashboard, SiteRow, Slice, VisitsData, Dump } from '@/lib/types'
-import { ranges, piePanels, searchEngines, socialSites, colors, palette } from '@/lib/constants'
+import { ranges, piePanels, searchEngines, socialSites, colors } from '@/lib/constants'
 import {
   formatNumber,
   siteKey,
@@ -408,9 +408,9 @@ function MetricCard({ label, value, comparison }: {
         <span
           className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium tabular-nums ${
             isPositive
-              ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400'
+              ? 'bg-accent/15 text-accent'
               : isNegative
-                ? 'bg-rose-500/10 text-rose-700 dark:text-rose-400'
+                ? 'bg-destructive/15 text-destructive'
                 : 'bg-secondary text-muted-foreground'
           }`}
         >
@@ -610,7 +610,7 @@ function BarListPanel({ title, data }: { title: string; data: Record<string, num
                 className="block h-1.5 rounded-full transition-all duration-300"
                 style={{
                   width: `${(value / max) * 100}%`,
-                  backgroundColor: palette.amber,
+                  backgroundColor: 'oklch(from var(--accent) l c h)',
                 }}
               />
             </span>
