@@ -1,6 +1,7 @@
 import * as React from 'react'
 import type { DashboardState, RangeKey, VisitsData, Dump, TimedVisits, ConnectionStatus } from '@/lib/types'
 import {
+  type DateWindow,
   normalizeDumpPayload,
   normalizeArchivePayload,
   normalizeCustomRangePayload,
@@ -21,6 +22,7 @@ export function useCounterDump(): DashboardState {
   const [dump, setDump] = React.useState<Dump | null>(null)
   const [archives, setArchives] = React.useState<Record<string, Record<string, VisitsData>>>({})
   const [customRange, setCustomRange] = React.useState<Record<string, VisitsData>>({})
+  const [customWindow, setCustomWindow] = React.useState<DateWindow>()
   const [selectedSite, setSelectedSiteState] = React.useState('')
   const [selectedRange, setSelectedRangeState] = React.useState<RangeKey>('day')
 
@@ -110,6 +112,7 @@ export function useCounterDump(): DashboardState {
     const response = await fetch(`/query?${params.toString()}`, { credentials: 'include' })
     if (!response.ok) throw new Error('Failed to fetch custom range')
     setCustomRange(normalizeCustomRangePayload(await response.json()))
+    setCustomWindow({ from, to })
     setSelectedRangeState('daterange')
   }, [])
 
@@ -118,8 +121,8 @@ export function useCounterDump(): DashboardState {
     [patchedDump, selectedRange],
   )
   const lineData = React.useMemo(
-    () => (patchedDump ? makeLineData(patchedDump, selectedRange) : []),
-    [patchedDump, selectedRange],
+    () => (patchedDump ? makeLineData(patchedDump, selectedRange, customWindow) : []),
+    [patchedDump, selectedRange, customWindow],
   )
   const lineConfig = React.useMemo(
     () => (patchedDump ? makeLineConfig(patchedDump) : {}),

@@ -10,6 +10,8 @@ import type {
 import { colors, searchEngines, socialSites } from './constants'
 import type { ChartConfig } from '@/components/ui/chart'
 
+export type DateWindow = { from: string; to: string }
+
 export function sum(values: number[]) {
   return values.reduce((total, value) => total + value, 0)
 }
@@ -142,11 +144,11 @@ export function makeTableRows(dump: Dump, range: RangeKey): SiteRow[] {
   })
 }
 
-export function makeLineData(dump: Dump, range: RangeKey): LinePoint[] {
+export function makeLineData(dump: Dump, range: RangeKey, customWindow?: DateWindow): LinePoint[] {
   const groupedBySite = Object.fromEntries(
     Object.entries(dump.sites).map(([site, siteDump]) => [
       site,
-      graphSeries((siteDump.visits ?? emptyTimedVisits())[range] ?? emptyVisitData(), range),
+      graphSeries((siteDump.visits ?? emptyTimedVisits())[range] ?? emptyVisitData(), range, customWindow),
     ]),
   )
   const buckets = new Set<string>()
@@ -194,8 +196,8 @@ export function normalizeHours(hours: Record<string, number>) {
   )
 }
 
-export function graphSeries(visits: VisitsData, range: RangeKey) {
-  const grouped = groupDates(visits.date ?? {})
+export function graphSeries(visits: VisitsData, range: RangeKey, customWindow?: DateWindow) {
+  const grouped = groupDates(normalizeDateWindow(visits.date ?? {}, range, customWindow))
   if (grouped.labels.length === 1 || range === 'yesterday' || range === 'day') {
     const hours = normalizeHours(visits.hour ?? {})
     return { labels: Object.keys(hours), map: hours }
@@ -229,6 +231,55 @@ export function groupDates(dates: Record<string, number>) {
   if (Object.keys(grouped).length > 16) grouped = groupedByMonth
   if (Object.keys(grouped).length > 32) grouped = groupedByYear
   return { labels: Object.keys(grouped), values: Object.values(grouped) }
+}
+
+export function normalizeDateWindow(
+  dates: Record<string, number>,
+  range: RangeKey,
+  customWindow?: DateWindow,
+) {
+  const window = dateWindowForRange(range, customWindow)
+  if (!window) return dates
+  return Object.fromEntries(
+    dateKeys(window.from, window.to).map((date) => [date, dates[date] ?? 0]),
+  )
+}
+
+export function dateWindowForRange(range: RangeKey, customWindow?: DateWindow): DateWindow | null {
+  const today = startOfLocalDay(new Date())
+  if (range === 'last7') return { from: dateKey(addDays(today, -6)), to: dateKey(today) }
+  if (range === 'last30') return { from: dateKey(addDays(today, -29)), to: dateKey(today) }
+  if (range === 'month') return { from: dateKey(new Date(today.getFullYear(), today.getMonth(), 1)), to: dateKey(today) }
+  if (range === 'year') return { from: dateKey(new Date(today.getFullYear(), 0, 1)), to: dateKey(today) }
+  if (range === 'daterange' && customWindow) return customWindow
+  return null
+}
+
+function dateKeys(from: string, to: string) {
+  const dates: string[] = []
+  for (let date = parseDateKey(from); date <= parseDateKey(to); date = addDays(date, 1))
+    dates.push(dateKey(date))
+  return dates
+}
+
+function parseDateKey(value: string) {
+  const [year = 0, month = 1, day = 1] = value.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+function startOfLocalDay(date: Date) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate())
+}
+
+function addDays(date: Date, days: number) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate() + days)
+}
+
+function dateKey(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 export function weekNumber(date: Date) {
