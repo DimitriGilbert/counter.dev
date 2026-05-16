@@ -267,7 +267,7 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
       {/* ====== SITE DETAIL ====== */}
       <section>
         {/* Site selector bar */}
-        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="sticky top-[52px] z-30 -mx-5 mb-5 flex flex-col gap-3 border-b border-border/40 bg-background/95 px-5 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
             <Select value={effectiveSite} onValueChange={setSelectedSite}>
               <SelectTrigger className="w-[220px]">
