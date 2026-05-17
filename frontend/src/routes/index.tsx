@@ -1202,7 +1202,9 @@ function parseLogEntry(log: string) {
   const bracketEnd = log.indexOf(']')
   if (bracketEnd === -1) return null
   const datetime = log.slice(1, bracketEnd)
-  const time = datetime.split(' ')[1]?.slice(0, 5) || ''
+  const [date, timePart] = datetime.split(' ')
+  const shortDate = date?.slice(5) || ''
+  const time = timePart?.slice(0, 5) || ''
   const rest = log.slice(bracketEnd + 1).trim()
   const parts = rest.split(/\s+/).filter(Boolean)
   if (parts.length < 2) return null
@@ -1215,7 +1217,7 @@ function parseLogEntry(log: string) {
     country = remaining.shift()!
   }
   referrer = remaining.join(' ')
-  return { time, country, referrer, device, platform }
+  return { time: shortDate && time ? `${shortDate} ${time}` : '', country, referrer, device, platform }
 }
 
 function DeviceIcon({ device }: { device: string }) {
