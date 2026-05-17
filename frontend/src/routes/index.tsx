@@ -8,7 +8,7 @@ import {
   type SortingState,
   useReactTable,
 } from '@tanstack/react-table'
-import { ArrowDownUp, Download, Eye, EyeOff, Plus, Settings } from 'lucide-react'
+import { ArrowDownUp, Download, Eye, EyeOff, Globe, Laptop, Monitor, Plus, Settings, Smartphone, Tablet, Terminal } from 'lucide-react'
 import {
   CartesianGrid,
   Cell,
@@ -49,6 +49,7 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Table,
   TableBody,
@@ -212,13 +213,13 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
       {/* ====== OVERVIEW: 2/3 chart | 1/3 table ====== */}
       <section className="mb-8">
         <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-          <Card className="border-border/40 shadow-none">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium tracking-tight">
+          <Card className="border-border/40 shadow-none pt-4 pb-0 gap-0">
+            <div className="px-4 pb-2">
+              <span className="text-sm font-medium tracking-tight">
                 Visit trends &middot; {selectedRangeLabel(selectedRange)}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+              </span>
+            </div>
+            <div className="px-4 pb-4">
               <ChartContainer config={lineConfig} className="h-[320px] w-full">
                 <LineChart accessibilityLayer data={lineData} margin={{ left: 0, right: 12 }}>
                   <CartesianGrid vertical={false} stroke="var(--border)" strokeOpacity={0.5} />
@@ -250,16 +251,16 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
                   ))}
                 </LineChart>
               </ChartContainer>
-            </CardContent>
+            </div>
           </Card>
 
-          <Card className="border-border/40 shadow-none">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium tracking-tight">Site comparison</CardTitle>
-            </CardHeader>
-            <CardContent>
+          <Card className="border-border/40 shadow-none pt-4 pb-0 gap-0">
+            <div className="px-4 pb-2">
+              <span className="text-sm font-medium tracking-tight">Site comparison</span>
+            </div>
+            <div className="px-4 pb-4">
               <SiteTable table={table} selectedSite={effectiveSite} onSelectSite={setSelectedSite} />
-            </CardContent>
+            </div>
           </Card>
         </div>
       </section>
@@ -563,13 +564,13 @@ function PiePanel({ title, data }: { title: string; data: Slice[] }) {
     {} as ChartConfig,
   )
   return (
-    <Card className="border-border/40 shadow-none">
-      <CardHeader className="pb-1 px-4 pt-4">
-        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">{title}</CardDescription>
-        <CardTitle className="font-mono text-sm tabular-nums tracking-tight">
+    <Card className="border-border/40 shadow-none pt-4 pb-0 gap-0">
+      <div className="flex items-baseline justify-between gap-3 px-4 pb-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{title}</span>
+        <span className="font-mono text-sm tabular-nums tracking-tight">
           {data.length ? formatNumber(sum(data.map((d) => d.value))) : 'No data'}
-        </CardTitle>
-      </CardHeader>
+        </span>
+      </div>
       <CardContent className="px-4 pb-4">
         <ChartContainer config={config} className="mx-auto aspect-square max-h-[180px] w-full">
           <PieChart accessibilityLayer>
@@ -604,43 +605,45 @@ function PagesTable({ data }: { data: Record<string, number> }) {
   const total = sum(entries.map(([, value]) => value))
 
   return (
-    <Card className="border-border/40 shadow-none">
-      <CardHeader className="pb-1 px-4 pt-4">
-        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">Visited pages</CardDescription>
-        <CardTitle className="font-mono text-sm tabular-nums tracking-tight">
+    <Card className="border-border/40 shadow-none pt-4 pb-0 gap-0">
+      <div className="flex items-baseline justify-between gap-3 px-4 pb-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Visited pages</span>
+        <span className="font-mono text-sm tabular-nums tracking-tight">
           {formatNumber(total)} views
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="px-4 pb-4">
-        <div className="max-h-72 overflow-auto rounded-lg border border-border/30">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="px-3 py-2 text-[10px]">Page</TableHead>
-                <TableHead className="w-24 px-3 py-2 text-right text-[10px]">Views</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {entries.length ? entries.map(([page, value]) => (
-                <TableRow key={page}>
-                  <TableCell className="max-w-0 truncate px-3 py-2 font-mono text-[11px] text-muted-foreground" title={page}>
-                    {page}
-                  </TableCell>
-                  <TableCell className="px-3 py-2 text-right font-mono text-[11px] tabular-nums">
-                    {formatNumber(value)}
-                  </TableCell>
-                </TableRow>
-              )) : (
+        </span>
+      </div>
+      <div className="px-4 pb-4">
+        <div className="h-72 rounded-lg border border-border/30">
+          <ScrollArea className="h-full">
+            <table className="w-full caption-bottom text-sm">
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={2} className="px-3 py-8 text-center text-xs text-muted-foreground">
-                    No page views yet
-                  </TableCell>
+                  <TableHead className="px-3 py-2 text-[10px]">Page</TableHead>
+                  <TableHead className="w-24 px-3 py-2 text-right text-[10px]">Views</TableHead>
                 </TableRow>
-              )}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {entries.length ? entries.map(([page, value]) => (
+                  <TableRow key={page}>
+                    <TableCell className="max-w-0 truncate px-3 py-2 font-mono text-[11px] text-muted-foreground" title={page}>
+                      {page}
+                    </TableCell>
+                    <TableCell className="px-3 py-2 text-right font-mono text-[11px] tabular-nums">
+                      {formatNumber(value)}
+                    </TableCell>
+                  </TableRow>
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={2} className="px-3 py-8 text-center text-xs text-muted-foreground">
+                      No page views yet
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </table>
+          </ScrollArea>
         </div>
-      </CardContent>
+      </div>
     </Card>
   )
 }
@@ -657,11 +660,11 @@ function AudienceStackedBars({ device, platform, browser }: {
   ] as const
 
   return (
-    <Card className="border-border/40 shadow-none">
-      <CardHeader className="pb-2 px-4 pt-4">
-        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">Audience</CardDescription>
-        <CardTitle className="text-sm font-medium tracking-tight">Device, platform, browser</CardTitle>
-      </CardHeader>
+    <Card className="border-border/40 shadow-none pt-4 pb-0 gap-0">
+      <div className="flex items-baseline justify-between gap-3 px-4 pb-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Audience</span>
+        <span className="text-sm font-medium tracking-tight text-muted-foreground">Device, platform, browser</span>
+      </div>
       <CardContent className="grid gap-5 px-4 pb-4 lg:grid-cols-2">
         <AudienceCompositionChart groups={groups} />
         <Tabs defaultValue="device" className="min-w-0">
@@ -743,37 +746,39 @@ function BreakdownTable({ title, data }: { title: string; data: Record<string, n
   const total = Math.max(1, sum(entries.map(([, value]) => value)))
 
   return (
-    <div className="max-h-64 overflow-auto rounded-lg border border-border/30">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="px-3 py-2 text-[10px]">{title}</TableHead>
-            <TableHead className="w-20 px-3 py-2 text-right text-[10px]">Count</TableHead>
-            <TableHead className="w-20 px-3 py-2 text-right text-[10px]">Share</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {entries.length ? entries.map(([name, value]) => (
-            <TableRow key={name}>
-              <TableCell className="max-w-0 truncate px-3 py-2 text-[11px] text-muted-foreground" title={name}>
-                {name}
-              </TableCell>
-              <TableCell className="px-3 py-2 text-right font-mono text-[11px] tabular-nums">
-                {formatNumber(value)}
-              </TableCell>
-              <TableCell className="px-3 py-2 text-right font-mono text-[11px] tabular-nums text-muted-foreground">
-                {Math.round((value / total) * 100)}%
-              </TableCell>
-            </TableRow>
-          )) : (
+    <div className="h-64 rounded-lg border border-border/30">
+      <ScrollArea className="h-full">
+        <table className="w-full caption-bottom text-sm">
+          <TableHeader>
             <TableRow>
-              <TableCell colSpan={3} className="px-3 py-8 text-center text-xs text-muted-foreground">
-                No {title.toLowerCase()} data yet
-              </TableCell>
+              <TableHead className="px-3 py-2 text-[10px]">{title}</TableHead>
+              <TableHead className="w-20 px-3 py-2 text-right text-[10px]">Count</TableHead>
+              <TableHead className="w-20 px-3 py-2 text-right text-[10px]">Share</TableHead>
             </TableRow>
-          )}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {entries.length ? entries.map(([name, value]) => (
+              <TableRow key={name}>
+                <TableCell className="max-w-0 truncate px-3 py-2 text-[11px] text-muted-foreground" title={name}>
+                  {name}
+                </TableCell>
+                <TableCell className="px-3 py-2 text-right font-mono text-[11px] tabular-nums">
+                  {formatNumber(value)}
+                </TableCell>
+                <TableCell className="px-3 py-2 text-right font-mono text-[11px] tabular-nums text-muted-foreground">
+                  {Math.round((value / total) * 100)}%
+                </TableCell>
+              </TableRow>
+            )) : (
+              <TableRow>
+                <TableCell colSpan={3} className="px-3 py-8 text-center text-xs text-muted-foreground">
+                  No {title.toLowerCase()} data yet
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </table>
+      </ScrollArea>
     </div>
   )
 }
@@ -795,11 +800,11 @@ function DynamicsPanel({ dates }: { dates: Record<string, number> }) {
     : trendSummary(vals)
 
   return (
-    <Card className="border-border/40 shadow-none">
-      <CardHeader className="pb-1 px-4 pt-4">
-        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">Dynamics</CardDescription>
-        <CardTitle className="text-sm font-medium tracking-tight">{trend.title}</CardTitle>
-      </CardHeader>
+    <Card className="border-border/40 shadow-none pt-4 pb-0 gap-0">
+      <div className="flex items-baseline justify-between gap-3 px-4 pb-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Dynamics</span>
+        <span className="text-sm font-medium tracking-tight">{trend.title}</span>
+      </div>
       <CardContent className="px-4 pb-4">
         <p className="text-xs text-muted-foreground leading-relaxed">{trend.detail}</p>
       </CardContent>
@@ -810,13 +815,13 @@ function DynamicsPanel({ dates }: { dates: Record<string, number> }) {
 function BarListPanel({ title, data }: { title: string; data: Record<string, number> }) {
   const max = Math.max(1, ...Object.values(data))
   return (
-    <Card className="border-border/40 shadow-none">
-      <CardHeader className="pb-1 px-4 pt-4">
-        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">{title}</CardDescription>
-        <CardTitle className="font-mono text-sm tabular-nums tracking-tight">
+    <Card className="border-border/40 shadow-none pt-4 pb-0 gap-0">
+      <div className="flex items-baseline justify-between gap-3 px-4 pb-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">{title}</span>
+        <span className="font-mono text-sm tabular-nums tracking-tight">
           {formatNumber(sumObject(data))}
-        </CardTitle>
-      </CardHeader>
+        </span>
+      </div>
       <CardContent className="flex flex-col gap-1 px-4 pb-4">
         {Object.entries(data).slice(0, 12).map(([key, value]) => (
           <div className="grid grid-cols-[3.5rem_1fr_2.5rem] items-center gap-2" key={key}>
@@ -956,25 +961,53 @@ function TrackingCode({ uuid }: { uuid: string }) {
 }
 
 function VisitLogs({ logs }: { logs: Record<string, number> }) {
-  const entries = Object.entries(logs).sort((a, b) => b[1] - a[1])
+  const entries = Object.entries(logs)
+    .sort((a, b) => b[1] - a[1])
+    .map(([log]) => parseLogEntry(log))
+    .filter(Boolean) as Array<{ time: string; country: string; referrer: string; device: string; platform: string }>
+
   return (
-    <Card className="border-border/40 shadow-none">
-      <CardHeader className="pb-1 px-4 pt-4">
-        <CardDescription className="text-[10px] font-semibold uppercase tracking-[0.1em]">Recent visits</CardDescription>
-        <CardTitle className="font-mono text-sm tabular-nums tracking-tight">
-          {entries.length} log entries
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="flex max-h-52 flex-col gap-1 overflow-auto px-4 pb-4">
-        {entries.map(([log, ts]) => (
-          <div
-            key={`${log}-${ts}`}
-            className="rounded-md border border-border/30 px-2.5 py-1.5 font-mono text-[11px] text-muted-foreground"
-          >
-            {log}
-          </div>
-        ))}
-      </CardContent>
+    <Card className="border-border/40 shadow-none pt-4 pb-0 gap-0">
+      <div className="flex items-baseline justify-between gap-3 px-4 pb-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">Recent visits</span>
+        <span className="font-mono text-sm tabular-nums tracking-tight">{entries.length}</span>
+      </div>
+      <div className="px-4 pb-4">
+        <div className="h-52 rounded-lg border border-border/30">
+          <ScrollArea className="h-full">
+            <table className="w-full caption-bottom text-sm">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="px-2 py-1.5 text-[10px]">Time</TableHead>
+                  <TableHead className="w-7 px-1 py-1.5" title="Country"><Globe size={10} className="text-muted-foreground" /></TableHead>
+                  <TableHead className="px-2 py-1.5 text-[10px]">Source</TableHead>
+                  <TableHead className="w-6 px-1 py-1.5" title="Device"><Monitor size={10} className="text-muted-foreground" /></TableHead>
+                  <TableHead className="w-6 px-1 py-1.5" title="OS"><Laptop size={10} className="text-muted-foreground" /></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {entries.length ? entries.map((entry, i) => (
+                  <TableRow key={i}>
+                    <TableCell className="px-2 py-1 font-mono text-[11px] text-muted-foreground">{entry.time}</TableCell>
+                    <TableCell className="px-1 py-1 text-sm leading-none">{countryFlag(entry.country) || '—'}</TableCell>
+                    <TableCell className="max-w-0 truncate px-2 py-1 font-mono text-[11px] text-muted-foreground" title={entry.referrer}>
+                      {stripProtocol(entry.referrer) || 'Direct'}
+                    </TableCell>
+                    <TableCell className="px-1 py-1" title={entry.device}><DeviceIcon device={entry.device} /></TableCell>
+                    <TableCell className="px-1 py-1" title={entry.platform}><PlatformIcon platform={entry.platform} /></TableCell>
+                  </TableRow>
+                )) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="px-3 py-8 text-center text-xs text-muted-foreground">
+                      No recent visits
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </table>
+          </ScrollArea>
+        </div>
+      </div>
     </Card>
   )
 }
@@ -1154,4 +1187,52 @@ function SetupScreen({ uuid }: { uuid: string }) {
 
 function selectedRangeLabel(range: RangeKey) {
   return ranges.find((item) => item.value === range)?.label ?? 'Custom range'
+}
+
+function countryFlag(code: string) {
+  if (!code || code.length !== 2) return ''
+  return String.fromCodePoint(...code.toUpperCase().split('').map((c) => 0x1F1E6 + c.charCodeAt(0) - 65))
+}
+
+function stripProtocol(url: string) {
+  return url.replace(/^https?:\/\//, '')
+}
+
+function parseLogEntry(log: string) {
+  const bracketEnd = log.indexOf(']')
+  if (bracketEnd === -1) return null
+  const datetime = log.slice(1, bracketEnd)
+  const time = datetime.split(' ')[1]?.slice(0, 5) || ''
+  const rest = log.slice(bracketEnd + 1).trim()
+  const parts = rest.split(/\s+/).filter(Boolean)
+  if (parts.length < 2) return null
+  const platform = parts.pop() || ''
+  const device = parts.pop() || ''
+  const remaining = parts
+  let country = ''
+  let referrer = ''
+  if (remaining.length >= 1 && /^[A-Za-z]{2}$/.test(remaining[0])) {
+    country = remaining.shift()!
+  }
+  referrer = remaining.join(' ')
+  return { time, country, referrer, device, platform }
+}
+
+function DeviceIcon({ device }: { device: string }) {
+  const d = device.toLowerCase()
+  const props = { size: 14, className: 'text-muted-foreground' }
+  if (d.includes('phone') || d.includes('mobile')) return <Smartphone {...props} />
+  if (d.includes('tablet') || d.includes('ipad')) return <Tablet {...props} />
+  return <Monitor {...props} />
+}
+
+function PlatformIcon({ platform }: { platform: string }) {
+  const p = platform.toLowerCase()
+  const props = { size: 14, className: 'text-muted-foreground' }
+  if (p.includes('android')) return <Smartphone {...props} />
+  if (p.includes('ios') || p.includes('iphone') || p.includes('ipad')) return <Tablet {...props} />
+  if (p.includes('mac')) return <Laptop {...props} />
+  if (p.includes('linux')) return <Terminal {...props} />
+  if (p.includes('windows')) return <Monitor {...props} />
+  return <Globe {...props} />
 }
