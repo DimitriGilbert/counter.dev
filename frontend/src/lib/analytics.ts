@@ -1,6 +1,7 @@
 import type {
   Dump,
   RangeKey,
+  SiteDump,
   SiteRow,
   LinePoint,
   Slice,

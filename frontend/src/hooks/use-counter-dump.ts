@@ -1,5 +1,5 @@
 import * as React from 'react'
-import type { DashboardState, RangeKey, VisitsData, Dump, TimedVisits, ConnectionStatus } from '@/lib/types'
+import type { DashboardState, RangeKey, VisitsData, Dump, ConnectionStatus } from '@/lib/types'
 import {
   type DateWindow,
   normalizeDumpPayload,
@@ -11,7 +11,6 @@ import {
   makeLineConfig,
   getUTCOffset,
   persistPreference,
-  emptyTimedVisits,
 } from '@/lib/analytics'
 import { ranges } from '@/lib/constants'
 

@@ -155,11 +155,20 @@ function Dashboard() {
     )
   }
 
-  return <ReadyDashboardView dashboard={dashboard} />
+  return <ReadyDashboardView dashboard={dashboard as ReadyDashboard} />
 }
 
 function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
   const [sorting, setSorting] = React.useState<SortingState>([{ id: 'total', desc: true }])
+  const [hiddenSites, setHiddenSites] = React.useState<Set<string>>(new Set())
+  const toggleSite = (site: string) => {
+    setHiddenSites((prev) => {
+      const next = new Set(prev)
+      if (next.has(site)) next.delete(site)
+      else next.add(site)
+      return next
+    })
+  }
   const {
     dump, selectedSite, selectedRange, connection,
     setSelectedSite, setSelectedRange,
@@ -237,7 +246,6 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
                     tick={{ fontSize: 11, fontFamily: "'Geist Mono', monospace" }}
                   />
                   <ChartTooltip content={<ChartTooltipContent indicator="line" />} />
-                  <ChartLegend content={<ChartLegendContent />} />
                   {Object.keys(dump.sites).map((site) => (
                     <Line
                       key={site}
@@ -247,10 +255,36 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
                       strokeWidth={1.5}
                       dot={false}
                       activeDot={{ r: 3, strokeWidth: 0 }}
+                      hide={hiddenSites.has(site)}
+                      strokeOpacity={hiddenSites.has(site) ? 0.15 : 1}
                     />
                   ))}
                 </LineChart>
               </ChartContainer>
+              <ScrollArea className="mt-2 max-h-[36px] w-full">
+                <div className="flex items-center gap-3 px-1 pb-1">
+                  {Object.keys(dump.sites).map((site) => {
+                    const key = siteKey(site)
+                    const isHidden = hiddenSites.has(site)
+                    return (
+                      <button
+                        key={site}
+                        type="button"
+                        onClick={() => toggleSite(site)}
+                        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium transition-all duration-150 hover:bg-secondary ${
+                          isHidden ? 'opacity-40' : 'opacity-100'
+                        }`}
+                      >
+                        <span
+                          className="size-2 shrink-0 rounded-sm"
+                          style={{ backgroundColor: `var(--color-${key})` }}
+                        />
+                        <span className="max-w-[100px] truncate">{site}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              </ScrollArea>
             </div>
           </Card>
 
@@ -1072,7 +1106,7 @@ function DeleteSite({ site }: { site: string }) {
   )
 }
 
-function StateScreen({ title, detail, action, tone = 'default' }: {
+function StateScreen({ title, detail, action, tone: _tone = 'default' }: {
   title: string
   detail: string
   action?: React.ReactNode
