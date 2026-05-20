@@ -261,30 +261,28 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
                   ))}
                 </LineChart>
               </ChartContainer>
-              <ScrollArea className="mt-2 max-h-[36px] w-full">
-                <div className="flex items-center gap-3 px-1 pb-1">
-                  {Object.keys(dump.sites).map((site) => {
-                    const key = siteKey(site)
-                    const isHidden = hiddenSites.has(site)
-                    return (
-                      <button
-                        key={site}
-                        type="button"
-                        onClick={() => toggleSite(site)}
-                        className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium transition-all duration-150 hover:bg-secondary ${
-                          isHidden ? 'opacity-40' : 'opacity-100'
-                        }`}
-                      >
-                        <span
-                          className="size-2 shrink-0 rounded-sm"
-                          style={{ backgroundColor: `var(--color-${key})` }}
-                        />
-                        <span className="max-w-[100px] truncate">{site}</span>
-                      </button>
-                    )
-                  })}
-                </div>
-              </ScrollArea>
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                {Object.keys(dump.sites).map((site) => {
+                  const key = siteKey(site)
+                  const isHidden = hiddenSites.has(site)
+                  return (
+                    <button
+                      key={site}
+                      type="button"
+                      onClick={() => toggleSite(site)}
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[11px] font-medium transition-all duration-150 hover:bg-secondary ${
+                        isHidden ? 'opacity-40 line-through' : 'opacity-100'
+                      }`}
+                    >
+                      <span
+                        className="size-2 shrink-0 rounded-sm"
+                        style={{ backgroundColor: `var(--color-${key})` }}
+                      />
+                      {site}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </Card>
 
