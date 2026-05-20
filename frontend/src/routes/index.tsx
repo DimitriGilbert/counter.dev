@@ -262,8 +262,7 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
                 </LineChart>
               </ChartContainer>
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                {Object.keys(dump.sites).map((site) => {
-                  const key = siteKey(site)
+                {Object.keys(dump.sites).map((site, index) => {
                   const isHidden = hiddenSites.has(site)
                   return (
                     <button
@@ -276,7 +275,7 @@ function ReadyDashboardView({ dashboard }: { dashboard: ReadyDashboard }) {
                     >
                       <span
                         className="size-2 shrink-0 rounded-sm"
-                        style={{ backgroundColor: `var(--color-${key})` }}
+                        style={{ backgroundColor: colors[index % colors.length] }}
                       />
                       {site}
                     </button>
