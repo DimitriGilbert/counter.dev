@@ -24,6 +24,7 @@ export function useCounterDump(): DashboardState {
   const [customWindow, setCustomWindow] = React.useState<DateWindow>()
   const [selectedSite, setSelectedSiteState] = React.useState('')
   const [selectedRange, setSelectedRangeState] = React.useState<RangeKey>('day')
+  const initializedPrefs = React.useRef(false)
 
   React.useEffect(() => {
     const params = new URLSearchParams(window.location.search)
@@ -89,9 +90,10 @@ export function useCounterDump(): DashboardState {
       )
     }
     const prefRange = patchedDump.user.prefs.range as RangeKey
-    if (prefRange && ranges.some((range) => range.value === prefRange)) {
+    if (!initializedPrefs.current && prefRange && ranges.some((range) => range.value === prefRange)) {
       setSelectedRangeState(prefRange)
     }
+    initializedPrefs.current = true
   }, [patchedDump, selectedSite])
 
   const setSelectedSite = React.useCallback((site: string) => {

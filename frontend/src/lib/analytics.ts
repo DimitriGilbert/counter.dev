@@ -155,7 +155,7 @@ export function makeLineData(dump: Dump, range: RangeKey, customWindow?: DateWin
   const buckets = new Set<string>()
   for (const grouped of Object.values(groupedBySite))
     grouped.labels.forEach((label) => buckets.add(label))
-  return Array.from(buckets).map((bucket) => {
+  return Array.from(buckets).sort(compareBuckets).map((bucket) => {
     const point: LinePoint = { bucket }
     for (const [site, grouped] of Object.entries(groupedBySite))
       point[siteKey(site)] = grouped.map[bucket] ?? 0
@@ -199,7 +199,7 @@ export function normalizeHours(hours: Record<string, number>) {
 
 export function graphSeries(visits: VisitsData, range: RangeKey, customWindow?: DateWindow) {
   const grouped = groupDates(normalizeDateWindow(visits.date ?? {}, range, customWindow))
-  if (grouped.labels.length === 1 || range === 'yesterday' || range === 'day') {
+  if (range === 'yesterday' || range === 'day') {
     const hours = normalizeHours(visits.hour ?? {})
     return { labels: Object.keys(hours), map: hours }
   }
@@ -228,10 +228,28 @@ export function groupDates(dates: Record<string, number>) {
     groupedByYear[year] = (groupedByYear[year] ?? 0) + value
   }
   let grouped = Object.fromEntries(entries)
-  if (Object.keys(grouped).length > 31) grouped = groupedByWeek
-  if (Object.keys(grouped).length > 16) grouped = groupedByMonth
-  if (Object.keys(grouped).length > 32) grouped = groupedByYear
+  if (entries.length > 31) {
+    grouped = groupedByWeek
+    if (Object.keys(grouped).length > 16) grouped = groupedByMonth
+    if (Object.keys(grouped).length > 32) grouped = groupedByYear
+  }
   return { labels: Object.keys(grouped), values: Object.values(grouped) }
+}
+
+function compareBuckets(a: string, b: string) {
+  const bucketOrder = bucketSortValue(a) - bucketSortValue(b)
+  if (!Number.isNaN(bucketOrder)) return bucketOrder
+  return a.localeCompare(b, undefined, { numeric: true })
+}
+
+function bucketSortValue(bucket: string) {
+  const date = Date.parse(`${bucket}T00:00:00Z`)
+  if (!Number.isNaN(date)) return date
+  const week = /^CW(\d+)$/.exec(bucket)
+  if (week) return Number(week[1])
+  const month = Date.parse(`1 ${bucket} UTC`)
+  if (!Number.isNaN(month)) return month
+  return Number.NaN
 }
 
 export function normalizeDateWindow(
