@@ -126,9 +126,23 @@ export function patchDump(
     next.sites[site].visits = visits
     visits.last7 = patchVisit(mergeVisits([visits.day, visits.yesterday, archives['-7:-2']?.[site] ?? emptyVisitData()]))
     visits.last30 = patchVisit(mergeVisits([visits.day, visits.yesterday, archives['-30:-2']?.[site] ?? emptyVisitData()]))
+    visits.last7.date = dateRangeFromAllVisits(visits.all.date ?? {}, visits.last7.date ?? {}, 'last7')
+    visits.last30.date = dateRangeFromAllVisits(visits.all.date ?? {}, visits.last30.date ?? {}, 'last30')
     visits.daterange = patchVisit(customRange[site] ?? emptyVisitData())
   }
   return next
+}
+
+function dateRangeFromAllVisits(
+  allDates: Record<string, number>,
+  fallbackDates: Record<string, number>,
+  range: RangeKey,
+) {
+  const window = dateWindowForRange(range)
+  if (!window) return fallbackDates
+  return Object.fromEntries(
+    dateKeys(window.from, window.to).map((date) => [date, allDates[date] ?? fallbackDates[date] ?? 0]),
+  )
 }
 
 export function makeTableRows(dump: Dump, range: RangeKey): SiteRow[] {

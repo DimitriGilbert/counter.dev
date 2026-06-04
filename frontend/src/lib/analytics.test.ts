@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { graphSeries, makeLineData, normalizeDateWindow } from './analytics'
+import { graphSeries, makeLineData, normalizeDateWindow, patchDump } from './analytics'
 import type { Dump } from './types'
 
 afterEach(() => {
@@ -86,6 +86,87 @@ describe('graphSeries', () => {
 })
 
 describe('makeLineData', () => {
+  it('uses archived visits when building last 7 and last 30 day trends', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 0, 10, 12))
+
+    const dump: Dump = {
+      user: { id: '1', token: 'token', uuid: 'uuid', isSubscribed: true, prefs: {} },
+      meta: {},
+      sites: {
+        'example.com': {
+          count: 14,
+          logs: {},
+          visits: {
+            day: { date: { '2026-01-10': 5 } },
+            yesterday: { date: { '2026-01-09': 4 } },
+            last7: { date: {} },
+            last30: { date: {} },
+            month: { date: {} },
+            year: { date: {} },
+            all: { date: {} },
+            daterange: { date: {} },
+          },
+        },
+      },
+    }
+    const patched = patchDump(
+      dump,
+      {
+        '-7:-2': { 'example.com': { date: { '2026-01-04': 1, '2026-01-08': 2 } } },
+        '-30:-2': { 'example.com': { date: { '2025-12-12': 3, '2026-01-08': 2 } } },
+      },
+      {},
+    )
+
+    expect(makeLineData(patched, 'last7')).toEqual([
+      { bucket: '2026-01-04', 'example-com': 1 },
+      { bucket: '2026-01-05', 'example-com': 0 },
+      { bucket: '2026-01-06', 'example-com': 0 },
+      { bucket: '2026-01-07', 'example-com': 0 },
+      { bucket: '2026-01-08', 'example-com': 2 },
+      { bucket: '2026-01-09', 'example-com': 4 },
+      { bucket: '2026-01-10', 'example-com': 5 },
+    ])
+    expect(makeLineData(patched, 'last30')[0]).toEqual({ bucket: '2025-12-12', 'example-com': 3 })
+  })
+
+  it('falls back to all-time date counts when archive data is missing from relative trends', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date(2026, 0, 10, 12))
+
+    const dump: Dump = {
+      user: { id: '1', token: 'token', uuid: 'uuid', isSubscribed: true, prefs: {} },
+      meta: {},
+      sites: {
+        'example.com': {
+          count: 9,
+          logs: {},
+          visits: {
+            day: { date: { '2026-01-10': 1 } },
+            yesterday: { date: {} },
+            last7: { date: {} },
+            last30: { date: {} },
+            month: { date: {} },
+            year: { date: {} },
+            all: { date: { '2026-01-06': 8, '2026-01-10': 1 } },
+            daterange: { date: {} },
+          },
+        },
+      },
+    }
+
+    expect(makeLineData(patchDump(dump, {}, {}), 'last7')).toEqual([
+      { bucket: '2026-01-04', 'example-com': 0 },
+      { bucket: '2026-01-05', 'example-com': 0 },
+      { bucket: '2026-01-06', 'example-com': 8 },
+      { bucket: '2026-01-07', 'example-com': 0 },
+      { bucket: '2026-01-08', 'example-com': 0 },
+      { bucket: '2026-01-09', 'example-com': 0 },
+      { bucket: '2026-01-10', 'example-com': 1 },
+    ])
+  })
+
   it('sorts buckets chronologically across all sites', () => {
     const dump: Dump = {
       user: { id: '1', token: 'token', uuid: 'uuid', isSubscribed: true, prefs: {} },
